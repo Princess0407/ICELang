@@ -1,6 +1,8 @@
 from lark import Lark, Transformer
 from dataclasses import dataclass, field
 from typing import Optional, List
+from collections import Counter
+
 
 @dataclass
 class Component:
@@ -31,6 +33,7 @@ class CktBlock:
     components: List[Component]   = field(default_factory=list)
     uses:       List[UseStmt]     = field(default_factory=list)
 
+
 grammar = r"""
     start: ckt_block+
     ckt_block: "ckt" NAME ":" statement+ "done"
@@ -52,6 +55,7 @@ grammar = r"""
 """
 
 parser = Lark(grammar, parser='earley')
+
 
 class ICELangTransformer(Transformer):
 
@@ -112,20 +116,18 @@ class ICELangTransformer(Transformer):
     def start(self, items):
         return items
 
+
 def analyse(ckt: CktBlock) -> list:
     errors = []
 
-    # flat list of all nodes used in components
     all_nodes = []
     for comp in ckt.components:
         all_nodes.append(comp.node1)
         all_nodes.append(comp.node2)
 
-    # checking if  gnd exist
     if "gnd" not in all_nodes:
         errors.append("No GND node found — circuit has no ground reference")
 
-    # port_out node must appear in components
     if ckt.port_out and ckt.port_out.node:
         if ckt.port_out.node not in all_nodes:
             errors.append(
@@ -133,9 +135,6 @@ def analyse(ckt: CktBlock) -> list:
                 f"never appears in any component"
             )
 
-    # every node must appear at least twice
-    #i.e, (connected to at least two components)
-    from collections import Counter
     node_count = Counter(all_nodes)
     for node, count in node_count.items():
         if count < 2 and node not in ("vin", "gnd"):
@@ -144,13 +143,14 @@ def analyse(ckt: CktBlock) -> list:
                 f"possible floating connection"
             )
 
-    # at least one component must exist
     if not ckt.components:
         errors.append("Circuit has no components")
 
     return errors
 
-test = """
+
+if __name__ == "__main__":
+    test = """
 ckt rc_filter:
     port_in: Vin
     port_out: Vout mc
@@ -158,26 +158,26 @@ ckt rc_filter:
     mc cap gnd 10F
 done
 """
-tree = parser.parse(test.strip())
-print("-------> Parse Tree")
-print(tree.pretty())
+    tree = parser.parse(test.strip())
+    print("-------> Parse Tree")
+    print(tree.pretty())
 
-transformer = ICELangTransformer()
-result = transformer.transform(tree)
+    transformer = ICELangTransformer()
+    result = transformer.transform(tree)
 
-print("-----> IR Objects ")
-for ckt in result:
-    print(f"\nCircuit : {ckt.name}")
-    print(f"port_in  : {ckt.port_in}")
-    print(f"port_out : {ckt.port_out}")
-    for comp in ckt.components:
-        print(f"component: {comp}")
+    print("-----> IR Objects")
+    for ckt in result:
+        print(f"\nCircuit : {ckt.name}")
+        print(f"port_in  : {ckt.port_in}")
+        print(f"port_out : {ckt.port_out}")
+        for comp in ckt.components:
+            print(f"component: {comp}")
 
-print("--------> Semantic Analysis")
-for ckt in result:
-    errors = analyse(ckt)
-    if errors:
-        for e in errors:
-            print(f"  ERROR: {e}")
-    else:
-        print(f"  {ckt.name} — all checks passed")
+    print("--------> Semantic Analysis")
+    for ckt in result:
+        errors = analyse(ckt)
+        if errors:
+            for e in errors:
+                print(f"  ERROR: {e}")
+        else:
+            print(f"  {ckt.name} — all checks passed")

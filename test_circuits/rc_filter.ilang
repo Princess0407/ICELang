@@ -1,0 +1,6 @@
+ckt rc_filter:
+    port_in: Vin
+    port_out: Vout mc
+    res mc 10k
+    mc cap gnd 10F
+done
