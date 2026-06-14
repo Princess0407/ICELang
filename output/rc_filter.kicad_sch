@@ -7,7 +7,7 @@
     (at -15.24 5.08 0)
     (unit 1)
     (in_bom yes) (on_board yes)
-    (uuid "823064a9-7424-4d4b-86fc-93a99f87c4b3")
+    (uuid "bf8348ba-5258-486d-8149-9f4056d9e0ab")
     (property "Reference" "R1" (at -15.24 3.58 0) (effects (font (size 1.27 1.27))))
     (property "Value" "10k" (at -15.24 6.58 0) (effects (font (size 1.27 1.27))))
   )
@@ -17,7 +17,7 @@
     (at 15.24 0.0 0)
     (unit 1)
     (in_bom yes) (on_board yes)
-    (uuid "08a81bad-aa73-4c60-be1d-a9253d6de0ce")
+    (uuid "9945b4ea-8258-45d7-ab5e-f3a87e21add1")
     (property "Reference" "C1" (at 15.24 -1.5 0) (effects (font (size 1.27 1.27))))
     (property "Value" "10F" (at 15.24 1.5 0) (effects (font (size 1.27 1.27))))
   )
@@ -27,7 +27,7 @@
     (at 0.0 -15.24 0)
     (unit 1)
     (in_bom yes) (on_board yes)
-    (uuid "2e2d05a7-5cf0-4a6f-bce8-d2106651f566")
+    (uuid "8dcd50c3-04e5-4273-91cb-30a827ad7cc1")
     (property "Reference" "#PWR" (at 0.0 -15.24 0) (effects (font (size 1.27 1.27)) hide))
     (property "Value" "GND" (at 0.0 -16.740000000000002 0) (effects (font (size 1.27 1.27))))
   )
@@ -35,31 +35,31 @@
   (wire
     (pts (xy -15.2 5.1) (xy -15.2 0.0))
     (stroke (width 0) (type default))
-    (uuid "1e038531-c2ad-4eca-9443-338899e6a5e4")
+    (uuid "29e4da95-4547-43cc-8534-028cd7116120")
   )
 
   (wire
     (pts (xy -15.2 0.0) (xy 15.2 0.0))
     (stroke (width 0) (type default))
-    (uuid "24c80feb-75b6-4a00-b5bc-239d3cb18ca0")
+    (uuid "0f467fcf-81c2-4219-baea-6757a96c342f")
   )
 
   (wire
     (pts (xy 15.2 0.0) (xy 15.2 -0.1))
     (stroke (width 0) (type default))
-    (uuid "f30d91e7-5b63-44cf-a870-dc04d5403156")
+    (uuid "b7566a1a-e8f9-4eff-a1dc-cdf7d9a6012c")
   )
 
   (wire
     (pts (xy 15.2 -0.1) (xy 0.0 -0.1))
     (stroke (width 0) (type default))
-    (uuid "6c25a4b1-c89b-48a7-865b-8e8bf322d221")
+    (uuid "37b94d05-a4a7-4902-834e-4d9c68598c8e")
   )
 
   (wire
     (pts (xy 0.0 -0.1) (xy 0.0 -15.2))
     (stroke (width 0) (type default))
-    (uuid "df5307fa-56be-4a46-92e9-6761fceec560")
+    (uuid "d681f3c4-d752-49e8-9bc1-dd381580e5d0")
   )
 
 )
