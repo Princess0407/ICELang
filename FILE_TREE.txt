@@ -1,8 +1,7 @@
 .
 ├── analysis
+│   ├── schematic_intelligence.py
 │   └── semantic.py
-│       ├── schematic_intelligence
-│       └── sem_transformers
 ├── component_models.py
 ├── FILE_TREE.txt
 ├── icelang_parser.py
@@ -17,6 +16,7 @@
 │   └── wire_router.py
 ├── logs
 │   ├── graph_builder.log
+│   ├── pipeline_1.log
 │   ├── placement_engine.log
 │   ├── rc_filter_graph.png
 │   └── wire_router.log
@@ -3611,10 +3611,14 @@
 │               └── ttx.1
 ├── output
 │   ├── kicad_gen.py
+│   ├── rc_filter.cir
+│   ├── rc_filter_graph.png
+│   ├── rc_filter.kicad_sch
+│   ├── ~rc_filter.kicad_sch.lck
 │   └── spice_gen.py
 ├── test_circuits
 │   └── rc_filter.ilang
 ├── tests
 └── tools
 
-351 directories, 3267 files
+350 directories, 3272 files
