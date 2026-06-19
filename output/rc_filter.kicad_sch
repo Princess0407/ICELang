@@ -383,7 +383,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "2f82ad99-eb5d-498d-992d-bd29504f11e0")
+    (uuid "bba0f4ed-9c2b-4c51-8c70-f298a2c4748f")
     (property "Reference" "R1"
       (at 152.032 87.3 90)
       (effects (font (size 1.27 1.27)))
@@ -400,7 +400,7 @@
     )
     (instances
       (project "schematic"
-        (path "/e9ca51da-7e16-4b28-a990-e408861a3db7"
+        (path "/38c0b97d-882d-4522-b078-8a3e8be254eb"
           (reference "R1")
           (unit 1)
         )
@@ -414,7 +414,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "8d6a1a52-a60d-4c4a-a5ef-22fc45c0a376")
+    (uuid "2042c69f-7284-4e7b-90c7-5ad30cd07c7e")
     (property "Reference" "C1"
       (at 190.132 138.1 90)
       (effects (font (size 1.27 1.27)))
@@ -431,7 +431,7 @@
     )
     (instances
       (project "schematic"
-        (path "/e9ca51da-7e16-4b28-a990-e408861a3db7"
+        (path "/38c0b97d-882d-4522-b078-8a3e8be254eb"
           (reference "C1")
           (unit 1)
         )
@@ -445,7 +445,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "48131055-9329-4930-b13f-3b18037f306c")
+    (uuid "57d02ae9-1d6b-4f90-b659-aa84d214c478")
     (property "Reference" "#PWR01"
       (at 150.0 178.2 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -462,7 +462,7 @@
     )
     (instances
       (project "schematic"
-        (path "/e9ca51da-7e16-4b28-a990-e408861a3db7"
+        (path "/38c0b97d-882d-4522-b078-8a3e8be254eb"
           (reference "#PWR01")
           (unit 1)
         )
@@ -475,7 +475,7 @@
     (at 73.8 74.6 0)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "179aa557-c16a-49b6-b390-29b4a211b760")
+    (uuid "79a406b9-41b1-4c64-9cb6-e500245b5e43")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -487,7 +487,7 @@
     (at 226.2 100.0 0)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "b7c05556-18b9-4e0a-b76c-5ede6c599d89")
+    (uuid "b9a2ddcf-7285-4c5e-8e2a-27d0eb987119")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -497,31 +497,31 @@
   (wire
     (pts (xy 74.0 74.5) (xy 74.0 100.0))
     (stroke (width 0) (type default))
-    (uuid "9ceec5a5-e817-4e2c-bdb7-df2f84e1cfc9")
+    (uuid "7b6e1d80-c892-4788-ad4a-d6bbec345252")
   )
 
   (wire
     (pts (xy 74.0 100.0) (xy 226.0 100.0))
     (stroke (width 0) (type default))
-    (uuid "16424562-56c4-487b-8276-ca74fbdc5cf7")
+    (uuid "d5cb6dd6-ddd8-4b35-8244-5dd0cb8dd993")
   )
 
   (wire
     (pts (xy 226.0 100.0) (xy 226.0 100.5))
     (stroke (width 0) (type default))
-    (uuid "df45b80a-e869-43d4-9de9-f7857cb185ae")
+    (uuid "50aed6ea-7b21-48de-9d7b-df097d591ce9")
   )
 
   (wire
     (pts (xy 226.0 100.5) (xy 150.0 100.5))
     (stroke (width 0) (type default))
-    (uuid "eca048bf-6190-4f8e-8689-9c8cd3376a81")
+    (uuid "7cf12205-d81e-408f-9a20-78f3dd409ca3")
   )
 
   (wire
     (pts (xy 150.0 100.5) (xy 150.0 176.0))
     (stroke (width 0) (type default))
-    (uuid "1d1ad468-a238-4ac4-8c83-df7ca76190dc")
+    (uuid "bea6c7bb-bfd6-4180-afb9-ed54fafc952d")
   )
 
   (sheet_instances
