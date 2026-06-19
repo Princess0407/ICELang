@@ -10,6 +10,7 @@ SHEET_CENTRE_X = 150.0
 SHEET_CENTRE_Y = 100.0
 SCALE          = 5.0
 SHEET_UUID     = str(uuid.uuid4())
+PIN_HALF       = 3.81   # distance from component centre to wire connection point
 
 KICAD_SYM_PATHS = [
     "/usr/share/kicad/symbols",
@@ -19,17 +20,17 @@ KICAD_SYM_PATHS = [
 ]
 
 
-def _uid() -> str:
+def _uid():
     return str(uuid.uuid4())
 
 
-def _scale(x: float, y: float) -> tuple:
+def _scale(x, y):
     sx = round(SHEET_CENTRE_X + x * SCALE, 4)
-    sy = round(SHEET_CENTRE_Y - y * SCALE, 4)  # negate y — KiCad y increases downward
+    sy = round(SHEET_CENTRE_Y - y * SCALE, 4)
     return sx, sy
 
 
-def find_kicad_lib(lib_name: str) -> str:
+def find_kicad_lib(lib_name):
     for base in KICAD_SYM_PATHS:
         path = os.path.join(base, f"{lib_name}.kicad_sym")
         if os.path.exists(path):
@@ -37,13 +38,13 @@ def find_kicad_lib(lib_name: str) -> str:
     return None
 
 
-def extract_symbol(lib_name: str, sym_name: str) -> str:
+def extract_symbol(lib_name, sym_name):
     path = find_kicad_lib(lib_name)
     if not path:
         print(f"  WARNING: library {lib_name} not found")
         return None
 
-    with open(path, "r") as f:
+    with open(path) as f:
         content = f.read()
 
     target = f'(symbol "{sym_name}"'
@@ -62,22 +63,17 @@ def extract_symbol(lib_name: str, sym_name: str) -> str:
             if depth == 0:
                 sym       = content[start:i+1]
                 full_name = f"{lib_name}:{sym_name}"
-
-                # only rename top-level symbol name
-             # "R" -> "Device:R"  (sub-symbols R_0_1, R_1_1 stay unchanged)
                 sym = sym.replace(
                     f'(symbol "{sym_name}"',
                     f'(symbol "{full_name}"',
                     1
                 )
-
-                indented = "\n".join("    " + l for l in sym.splitlines())
-                return indented
+                return "\n".join("    " + l for l in sym.splitlines())
         i += 1
     return None
 
 
-def build_lib_symbols(comp_types: list, needs_gnd: bool) -> str:
+def build_lib_symbols(comp_types, needs_gnd):
     type_to_lib = {
         "res":   ("Device", "R"),
         "cap":   ("Device", "C"),
@@ -87,34 +83,67 @@ def build_lib_symbols(comp_types: list, needs_gnd: bool) -> str:
         "mos":   ("Device", "NMOS"),
         "vol":   ("Device", "Battery"),
     }
-
     parts = []
     seen  = set()
-
     for ct in comp_types:
         if ct in type_to_lib and ct not in seen:
-            lib_name, sym_name = type_to_lib[ct]
-            sym = extract_symbol(lib_name, sym_name)
-            if sym:
-                parts.append(sym)
+            lib, sym = type_to_lib[ct]
+            s = extract_symbol(lib, sym)
+            if s:
+                parts.append(s)
                 seen.add(ct)
-                print(f"  embedded symbol {lib_name}:{sym_name}")
-
+                print(f"  embedded {lib}:{sym}")
     if needs_gnd:
-        sym = extract_symbol("power", "GND")
-        if sym:
-            parts.append(sym)
-            print(f"  embedded symbol power:GND")
-
+        s = extract_symbol("power", "GND")
+        if s:
+            parts.append(s)
+            print(f"  embedded power:GND")
     if not parts:
         return "  (lib_symbols)"
-
     return "  (lib_symbols\n" + "\n".join(parts) + "\n  )"
 
 
-def _placed_symbol(lib_id: str, ref: str,
-                   x: float, y: float,
-                   value: str, rotation: int = 0) -> str:
+def pin_positions(kx, ky, rotation):
+    if rotation == 0:
+        return (kx, ky - PIN_HALF), (kx, ky + PIN_HALF)
+    else:
+        return (kx - PIN_HALF, ky), (kx + PIN_HALF, ky)
+
+
+def closer_pin(n_kx, n_ky, pin_a, pin_b):
+    da = (pin_a[0]-n_kx)**2 + (pin_a[1]-n_ky)**2
+    db = (pin_b[0]-n_kx)**2 + (pin_b[1]-n_ky)**2
+    return (pin_a, pin_b) if da <= db else (pin_b, pin_a)
+
+
+def manhattan_wires(x1, y1, x2, y2):
+    segs = []
+    if abs(x1-x2) < 0.01 and abs(y1-y2) < 0.01:
+        return segs
+    if abs(x1-x2) < 0.01:
+        segs.append((x1, y1, x2, y2))
+    elif abs(y1-y2) < 0.01:
+        segs.append((x1, y1, x2, y2))
+    else:
+        segs.append((x1, y1, x2, y1))
+        segs.append((x2, y1, x2, y2))
+    return segs
+
+
+def _wire(x1, y1, x2, y2):
+    return f"""  (wire
+    (pts (xy {x1} {y1}) (xy {x2} {y2}))
+    (stroke (width 0) (type default))
+    (uuid "{_uid()}")
+  )"""
+
+
+def _junction(x, y):
+    return (f'  (junction (at {x} {y}) '
+            f'(diameter 0) (color 0 0 0 0) (uuid "{_uid()}"))')
+
+
+def _placed_symbol(lib_id, ref, x, y, value, rotation=0):
     return f"""  (symbol
     (lib_id "{lib_id}")
     (at {x} {y} {rotation})
@@ -123,11 +152,11 @@ def _placed_symbol(lib_id: str, ref: str,
     (on_board yes)
     (uuid "{_uid()}")
     (property "Reference" "{ref}"
-      (at {round(x + 2.032, 4)} {y} 90)
+      (at {round(x+2.032,4)} {round(y-1.0,4)} 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "{value}"
-      (at {round(x - 2.032, 4)} {y} 90)
+      (at {round(x-2.032,4)} {round(y-1.0,4)} 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Footprint" "" (at 0 0 0)
@@ -147,7 +176,7 @@ def _placed_symbol(lib_id: str, ref: str,
   )"""
 
 
-def _gnd_symbol(ref: str, x: float, y: float) -> str:
+def _gnd_symbol(ref, x, y):
     return f"""  (symbol
     (lib_id "power:GND")
     (at {x} {y} 0)
@@ -156,11 +185,11 @@ def _gnd_symbol(ref: str, x: float, y: float) -> str:
     (on_board yes)
     (uuid "{_uid()}")
     (property "Reference" "{ref}"
-      (at {x} {round(y + 2.0, 4)} 0)
+      (at {x} {round(y+6.35,4)} 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GND"
-      (at {x} {round(y + 3.5, 4)} 0)
+      (at {x} {round(y+3.81,4)} 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Footprint" "" (at 0 0 0)
@@ -180,8 +209,7 @@ def _gnd_symbol(ref: str, x: float, y: float) -> str:
   )"""
 
 
-def _global_label(name: str, x: float, y: float,
-                  shape: str = "input") -> str:
+def _global_label(name, x, y, shape="input"):
     return f"""  (global_label "{name}"
     (shape {shape})
     (at {x} {y} 0)
@@ -195,19 +223,6 @@ def _global_label(name: str, x: float, y: float,
   )"""
 
 
-def _wire(x1: float, y1: float, x2: float, y2: float) -> str:
-    return f"""  (wire
-    (pts (xy {x1} {y1}) (xy {x2} {y2}))
-    (stroke (width 0) (type default))
-    (uuid "{_uid()}")
-  )"""
-
-
-def _junction(x: float, y: float) -> str:
-    return (f'  (junction (at {x} {y}) '
-            f'(diameter 0) (color 0 0 0 0) (uuid "{_uid()}"))')
-
-
 TYPE_TO_LIB = {
     "res":   "Device:R",
     "cap":   "Device:C",
@@ -219,8 +234,9 @@ TYPE_TO_LIB = {
 }
 
 
-def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
-    blocks = []
+def generate(ckt, placed, routing):
+    blocks    = []
+    wire_segs = []
 
     comp_types = [c.type for c in ckt.components]
     needs_gnd  = "gnd" in placed
@@ -247,62 +263,68 @@ def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
         counter[prefix] = counter.get(prefix, 0) + 1
         ref    = f"{prefix}{counter[prefix]}"
 
-        # place component at midpoint between its two nodes
         raw_x1, raw_y1 = placed.get(comp.node1, (0.0, 0.0))
         raw_x2, raw_y2 = placed.get(comp.node2, (0.0, 0.0))
+
         mid_x = (raw_x1 + raw_x2) / 2
         mid_y = (raw_y1 + raw_y2) / 2
-        x, y  = _scale(mid_x, mid_y)
+        kx, ky = _scale(mid_x, mid_y)
 
-        # orient component based on direction between nodes
-        dx = raw_x2 - raw_x1
-        dy = raw_y2 - raw_y1
-        rotation = 0 if abs(dy) > abs(dx) else 90
+        dx = abs(raw_x2 - raw_x1)
+        dy = abs(raw_y2 - raw_y1)
+        rotation = 90 if dx > dy else 0
 
-        blocks.append(_placed_symbol(lib_id, ref, x, y, comp.value, rotation))
+        pa, pb = pin_positions(kx, ky, rotation)
+
+        n1_kx, n1_ky = _scale(raw_x1, raw_y1)
+        n2_kx, n2_ky = _scale(raw_x2, raw_y2)
+
+        node1_pin, node2_pin = closer_pin(n1_kx, n1_ky, pa, pb)
+
+        blocks.append(_placed_symbol(lib_id, ref, kx, ky, comp.value, rotation))
+
+        for seg in manhattan_wires(n1_kx, n1_ky, node1_pin[0], node1_pin[1]):
+            wire_segs.append(seg)
+        for seg in manhattan_wires(n2_kx, n2_ky, node2_pin[0], node2_pin[1]):
+            wire_segs.append(seg)
 
     for node, (raw_x, raw_y) in placed.items():
-        x, y = _scale(raw_x, raw_y)
+        kx, ky = _scale(raw_x, raw_y)
         if node == "gnd":
             gnd_counter += 1
-            blocks.append(_gnd_symbol(f"#PWR0{gnd_counter}", x, y))
+            blocks.append(_gnd_symbol(f"#PWR0{gnd_counter}", kx, ky))
 
     if ckt.port_in:
         node = ckt.port_in.name
         if node in placed:
-            raw_x, raw_y = placed[node]
-            x, y = _scale(raw_x, raw_y)
-            blocks.append(_global_label("VIN", x, y, shape="input"))
+            kx, ky = _scale(*placed[node])
+            blocks.append(_global_label("VIN", kx, ky, shape="input"))
 
     if ckt.port_out and ckt.port_out.node:
         node = ckt.port_out.node
         if node in placed:
-            raw_x, raw_y = placed[node]
-            x, y = _scale(raw_x, raw_y)
-            blocks.append(_global_label("VOUT", x, y, shape="output"))
+            kx, ky = _scale(*placed[node])
+            blocks.append(_global_label("VOUT", kx, ky, shape="output"))
 
-    for label, wire in routing["wires"].items():
-        for seg in wire.get("segments", []):
-            (wx1, wy1), (wx2, wy2) = seg
-            sx1, sy1 = _scale(wx1, wy1)
-            sx2, sy2 = _scale(wx2, wy2)
-            blocks.append(_wire(sx1, sy1, sx2, sy2))
-
-    for jx, jy in routing.get("junctions", []):
-        sx, sy = _scale(jx, jy)
-        blocks.append(_junction(sx, sy))
+    seen_segs = set()
+    for seg in wire_segs:
+        key = (round(seg[0],2), round(seg[1],2),
+               round(seg[2],2), round(seg[3],2))
+        rev = (key[2], key[3], key[0], key[1])
+        if key not in seen_segs and rev not in seen_segs:
+            seen_segs.add(key)
+            blocks.append(_wire(*seg))
 
     blocks.append("""  (sheet_instances
     (path "/"
       (page "1")
     )
   )""")
-
     blocks.append(')')
     return '\n\n'.join(blocks)
 
 
-def write(ckt: CktBlock, placed: dict, routing: dict, path: str):
+def write(ckt, placed, routing, path):
     content = generate(ckt, placed, routing)
     with open(path, "w") as f:
         f.write(content)
@@ -320,11 +342,10 @@ if __name__ == "__main__":
         port_in=PortIn(name="vin"),
         port_out=PortOut(name="vout", node="mc"),
         components=[
-            Component(type="res", node1="vin", node2="mc",  value="10k"),
+            Component(type="res", node1="vin", node2="mc", value="10k"),
             Component(type="cap", node1="mc",  node2="gnd", value="10F"),
         ]
     )
-
     G       = build(ckt)
     placed  = place(G, ckt)
     edges   = [(u, v, f"{d['component']}_{u}_{v}")
