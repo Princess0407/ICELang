@@ -1,0 +1,197 @@
+{
+  "res": {
+    "kicad_symbol": "Device:R",
+    "spice_prefix": "R",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": [
+      "resistor",
+      "r"
+    ]
+  },
+  "cap": {
+    "kicad_symbol": "Device:C",
+    "spice_prefix": "C",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": [
+      "capacitor",
+      "c"
+    ]
+  },
+  "ind": {
+    "kicad_symbol": "Device:L",
+    "spice_prefix": "L",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": [
+      "inductor",
+      "coil"
+    ]
+  },
+  "diode": {
+    "kicad_symbol": "Device:D",
+    "spice_prefix": "D",
+    "pin_count": 2,
+    "pin_names": [
+      "A",
+      "K"
+    ],
+    "aliases": [
+      "d"
+    ]
+  },
+  "vol": {
+    "kicad_symbol": "Device:Battery",
+    "spice_prefix": "V",
+    "pin_count": 2,
+    "pin_names": [
+      "+",
+      "-"
+    ],
+    "aliases": [
+      "voltage",
+      "vsource",
+      "vdc"
+    ]
+  },
+  "curr": {
+    "kicad_symbol": "Device:Battery",
+    "spice_prefix": "I",
+    "pin_count": 2,
+    "pin_names": [
+      "+",
+      "-"
+    ],
+    "aliases": [
+      "current",
+      "isource"
+    ]
+  },
+  "bjt_npn": {
+    "kicad_symbol": "Device:Q_NPN_BCE",
+    "spice_prefix": "Q",
+    "pin_count": 3,
+    "pin_names": [
+      "B",
+      "C",
+      "E"
+    ],
+    "aliases": [
+      "npn",
+      "transistor_npn",
+      "BC547",
+      "2N2222"
+    ]
+  },
+  "bjt_pnp": {
+    "kicad_symbol": "Device:Q_PNP_BCE",
+    "spice_prefix": "Q",
+    "pin_count": 3,
+    "pin_names": [
+      "B",
+      "C",
+      "E"
+    ],
+    "aliases": [
+      "pnp",
+      "transistor_pnp",
+      "BC557"
+    ]
+  },
+  "nmos": {
+    "kicad_symbol": "Device:NMOS",
+    "spice_prefix": "M",
+    "pin_count": 4,
+    "pin_names": [
+      "G",
+      "D",
+      "S",
+      "B"
+    ],
+    "aliases": [
+      "mosfet_n",
+      "nfet"
+    ]
+  },
+  "pmos": {
+    "kicad_symbol": "Device:PMOS",
+    "spice_prefix": "M",
+    "pin_count": 4,
+    "pin_names": [
+      "G",
+      "D",
+      "S",
+      "B"
+    ],
+    "aliases": [
+      "mosfet_p",
+      "pfet"
+    ]
+  },
+  "opamp": {
+    "kicad_symbol": "Amplifier_Operational:LM741",
+    "spice_prefix": "X",
+    "pin_count": 5,
+    "pin_names": [
+      "IN+",
+      "IN-",
+      "OUT",
+      "V+",
+      "V-"
+    ],
+    "aliases": [
+      "op_amp",
+      "LM741",
+      "LM358",
+      "TL071"
+    ]
+  },
+  "gate_and": {
+    "kicad_symbol": "74xx:74LS08",
+    "spice_prefix": "X",
+    "pin_count": 3,
+    "pin_names": [
+      "A",
+      "B",
+      "Y"
+    ],
+    "aliases": [
+      "and_gate",
+      "AND"
+    ]
+  },
+  "gate_not": {
+    "kicad_symbol": "74xx:74LS04",
+    "spice_prefix": "X",
+    "pin_count": 2,
+    "pin_names": [
+      "A",
+      "Y"
+    ],
+    "aliases": [
+      "inverter",
+      "NOT"
+    ]
+  },
+  "bc547": {
+    "kicad_symbol": "Device:Q_NPN_BCE",
+    "spice_prefix": "Q",
+    "pin_count": 3,
+    "pin_names": [
+      "1",
+      "2",
+      "3"
+    ],
+    "aliases": []
+  }
+}

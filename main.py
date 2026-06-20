@@ -3,8 +3,9 @@ import os
 sys.path.insert(0, '/home/princess/icelang')
 sys.path.insert(0, '/home/princess/icelang/intelligent_schematic_layer')
 
-from lark import Lark
-from analysis.semantic import analyse, ICELangTransformer, grammar
+from icelang_parser import (
+    Lark, parser, ICELangTransformer, analyse, grammar
+)
 from intelligent_schematic_layer.graph_builder import build, visualise
 from intelligent_schematic_layer.placement_engine import place
 from intelligent_schematic_layer.wire_router import route

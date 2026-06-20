@@ -4,6 +4,8 @@ from typing import Optional, List, Dict
 from collections import Counter
 
 
+# --------->dataclasses 
+
 @dataclass
 class Component:
     type:  str
@@ -42,27 +44,47 @@ class CktBlock:
     defines:    List[DefineStmt]  = field(default_factory=list)
 
 
+# -------------grammar
+
 grammar = r"""
     start: ckt_block+
+
     ckt_block: "ckt" NAME ":" statement+ "done"
-    statement: port_in_decl | port_out_decl | component_stmt | define_stmt | use_stmt
+
+    statement: port_in_decl
+             | port_out_decl
+             | component_stmt
+             | define_stmt
+             | use_stmt
+
     port_in_decl:  "port_in"  ":" NAME
     port_out_decl: "port_out" ":" NAME NAME?
+
     component_stmt: NAME token+
-    define_stmt: "define" NAME "kicad" "=" QUOTED_STR "spice" "=" NAME "pins" "=" INT
+
+    define_stmt: "define" NAME
+                 "kicad"  "=" QUOTED_STR
+                 "spice"  "=" NAME
+                 "pins"   "=" INT
+
     use_stmt: "use" NAME NAME+
+
     token: NAME  -> tok_name
          | VALUE -> tok_value
-    QUOTED_STR.3: /\"[^\"]*\"/
-    INT.2:        /[0-9]+/
-    VALUE.1:      /[0-9]+(\.[0-9]+)?[pnumkMGTfF]?[a-zA-Z]*/
-    NAME.1:       /[a-zA-Z_][a-zA-Z0-9_]*/
+
+    QUOTED_STR: /\"[^\"]*\"/
+    NAME:       /[a-zA-Z_][a-zA-Z0-9_]*/
+    VALUE:      /[0-9]+(\.[0-9]+)?[pnumkMGTfF]?[a-zA-Z]*/
+    INT:        /[0-9]+/
+
     %import common.WS
     %ignore WS
 """
 
 parser = Lark(grammar, parser='earley')
 
+
+# ----------->transformer 
 
 class ICELangTransformer(Transformer):
 
@@ -74,25 +96,33 @@ class ICELangTransformer(Transformer):
 
     def component_stmt(self, items):
         from component_registry import lookup
-        comp_type   = str(items[0]).lower()
-        tokens      = list(items[1:])
-        entry       = lookup(comp_type)
+
+        comp_type = str(items[0]).lower()
+        tokens    = list(items[1:])
+
+        entry = lookup(comp_type)
+
         if entry:
-            pin_count   = entry["pin_count"]
-            pin_names   = entry.get("pin_names", [str(i+1) for i in range(pin_count)])
+            pin_count  = entry["pin_count"]
+            pin_names  = entry.get("pin_names",
+                         [str(i+1) for i in range(pin_count)])
             name_tokens = [t[1] for t in tokens if t[0] == "name"]
             val_tokens  = [t[1] for t in tokens if t[0] == "value"]
-            nodes       = name_tokens[:pin_count]
-            value       = (val_tokens[0] if val_tokens
-                           else name_tokens[pin_count]
-                           if len(name_tokens) > pin_count else "")
-            pins        = {pin_names[i]: nodes[i]
-                           for i in range(min(len(pin_names), len(nodes)))}
+
+            nodes = name_tokens[:pin_count]
+            value = (val_tokens[0] if val_tokens
+                     else name_tokens[pin_count]
+                     if len(name_tokens) > pin_count else "")
+
+            pins = {pin_names[i]: nodes[i]
+                    for i in range(min(len(pin_names), len(nodes)))}
         else:
             all_tokens  = [t[1] for t in tokens]
-            nodes       = [t for t in all_tokens if not t[0].isdigit()]
-            value       = next((t for t in all_tokens if t[0].isdigit()), "")
-            pins        = {}
+            nodes = [t for t in all_tokens if not t[0].isdigit()]
+            value = next((t for t in all_tokens
+                          if t[0].isdigit()), "")
+            pins  = {}
+
         return Component(
             type  = comp_type,
             nodes = [n.lower() for n in nodes],
@@ -102,15 +132,26 @@ class ICELangTransformer(Transformer):
 
     def define_stmt(self, items):
         from component_registry import register
+
         name         = str(items[0]).lower()
-        kicad_symbol = str(items[1]).strip('"\"')
+        kicad_symbol = str(items[1]).strip('"')
         spice_prefix = str(items[2]).upper()
         pin_count    = int(items[3])
-        register(name=name, kicad_symbol=kicad_symbol,
-                 spice_prefix=spice_prefix, pin_count=pin_count,
-                 pin_names=[str(i+1) for i in range(pin_count)])
-        return DefineStmt(name=name, kicad_symbol=kicad_symbol,
-                          spice_prefix=spice_prefix, pin_count=pin_count)
+
+        register(
+            name         = name,
+            kicad_symbol = kicad_symbol,
+            spice_prefix = spice_prefix,
+            pin_count    = pin_count,
+            pin_names    = [str(i+1) for i in range(pin_count)]
+        )
+
+        return DefineStmt(
+            name         = name,
+            kicad_symbol = kicad_symbol,
+            spice_prefix = spice_prefix,
+            pin_count    = pin_count
+        )
 
     def port_in_decl(self, items):
         return PortIn(name=str(items[0]).lower())
@@ -121,49 +162,86 @@ class ICELangTransformer(Transformer):
         return PortOut(name=name, node=node)
 
     def use_stmt(self, items):
-        return UseStmt(circuit_name=str(items[0]).lower(),
-                       nodes=[str(n).lower() for n in items[1:]])
+        return UseStmt(
+            circuit_name = str(items[0]).lower(),
+            nodes        = [str(n).lower() for n in items[1:]]
+        )
 
     def statement(self, items):
         return items[0]
 
     def ckt_block(self, items):
-        name = str(items[0]).lower()
-        port_in, port_out = None, None
-        components, uses, defines = [], [], []
+        name       = str(items[0]).lower()
+        port_in    = None
+        port_out   = None
+        components = []
+        uses       = []
+        defines    = []
+
         for item in items[1:]:
-            if isinstance(item, PortIn):       port_in = item
-            elif isinstance(item, PortOut):    port_out = item
-            elif isinstance(item, Component):  components.append(item)
-            elif isinstance(item, UseStmt):    uses.append(item)
-            elif isinstance(item, DefineStmt): defines.append(item)
-        return CktBlock(name=name, port_in=port_in, port_out=port_out,
-                        components=components, uses=uses, defines=defines)
+            if isinstance(item, PortIn):
+                port_in = item
+            elif isinstance(item, PortOut):
+                port_out = item
+            elif isinstance(item, Component):
+                components.append(item)
+            elif isinstance(item, UseStmt):
+                uses.append(item)
+            elif isinstance(item, DefineStmt):
+                defines.append(item)
+
+        return CktBlock(
+            name       = name,
+            port_in    = port_in,
+            port_out   = port_out,
+            components = components,
+            uses       = uses,
+            defines    = defines
+        )
 
     def start(self, items):
         return list(items)
 
 
+# -----------> semantic analyser 
+
 def analyse(ckt: CktBlock) -> list:
-    errors    = []
-    all_nodes = []
+    errors     = []
+    all_nodes  = []
+
     for comp in ckt.components:
         all_nodes.extend(comp.nodes)
+
     if not any(n == "gnd" for n in all_nodes):
-        errors.append("No GND node found")
+        errors.append(
+            "No GND node found — circuit has no ground reference"
+        )
+
     if ckt.port_out and ckt.port_out.node:
         if ckt.port_out.node not in all_nodes:
-            errors.append(f"port_out node never appears in any component")
+            errors.append(
+                f"port_out node '{ckt.port_out.node}' "
+                f"never appears in any component"
+            )
+
     node_count = Counter(all_nodes)
     for node, count in node_count.items():
         if count < 2 and node not in ("vin", "gnd", "vcc", "vdd"):
-            errors.append(f"Node {node!r} only appears once — possible floating connection")
+            errors.append(
+                f"Node '{node}' only appears once — "
+                f"possible floating connection"
+            )
+
     if not ckt.components:
-        errors.append("Circuit has no components")
+        errors.append("Circuit has got no components!!")
+
     return errors
 
 
+# ---------------> tests 
+
 if __name__ == "__main__":
+
     test_cases = [
         ("RC filter", """
 ckt rc_filter:
@@ -230,8 +308,8 @@ done
     ]
 
     transformer = ICELangTransformer()
-    passed = 0
-    failed = 0
+    passed      = 0
+    failed      = 0
 
     for test_name, source in test_cases:
         print(f"\n{'─'*50}")
@@ -245,14 +323,18 @@ done
                 if ckt.port_in:
                     print(f"  port_in  : {ckt.port_in.name}")
                 if ckt.port_out:
-                    print(f"  port_out : {ckt.port_out.name} @ {ckt.port_out.node}")
+                    print(f"  port_out : "
+                          f"{ckt.port_out.name} @ {ckt.port_out.node}")
                 for comp in ckt.components:
-                    print(f"  {comp.type:15} nodes={comp.nodes} value={comp.value}")
+                    print(f"  {comp.type:15} "
+                          f"nodes={comp.nodes} "
+                          f"value={comp.value}")
                 for use in ckt.uses:
                     print(f"  use {use.circuit_name} {use.nodes}")
                 errors = analyse(ckt)
                 if errors:
-                    for e in errors: print(f"  SEMANTIC: {e}")
+                    for e in errors:
+                        print(f"  SEMANTIC: {e}")
                 else:
                     print(f"  semantic : OK")
             passed += 1
@@ -260,6 +342,6 @@ done
             print(f"  FAILED: {e}")
             failed += 1
 
-    print(f"\n{'='*50}")
+    print(f"\n{'═'*50}")
     print(f"Results: {passed} passed  {failed} failed")
-    print(f"{'='*50}")
+    print(f"{'═'*50}")
