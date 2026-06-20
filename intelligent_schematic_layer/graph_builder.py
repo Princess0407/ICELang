@@ -12,19 +12,19 @@ def build(ckt: CktBlock) -> nx.Graph:
 
     for comp in ckt.components:
         G.add_node(
-            comp.node1,
-            node_type="signal" if comp.node1 == "vin" else "internal"
+            comp.nodes[0],
+            node_type="signal" if comp.nodes[0] == "vin" else "internal"
         )
         G.add_node(
-            comp.node2,
-            node_type="ground" if comp.node2 == "gnd" else "internal"
+            comp.nodes[1],
+            node_type="ground" if comp.nodes[1] == "gnd" else "internal"
         )
         G.add_edge(
-            comp.node1,
-            comp.node2,
+            comp.nodes[0],
+            comp.nodes[1],
             component=comp.type,
             value=comp.value,
-            ref=f"{comp.type}_{comp.node1}_{comp.node2}"
+            ref=f"{comp.type}_{comp.nodes[0]}_{comp.nodes[1]}"
         )
 
     if ckt.port_in:

@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '/home/princess/icelang')
 
 from icelang_parser import CktBlock
-from component_models import get
+from component_registry import lookup
 
 
 def generate(ckt: CktBlock) -> str:
@@ -10,11 +10,13 @@ def generate(ckt: CktBlock) -> str:
 
     counter = {}
     for comp in ckt.components:
-        model  = get(comp.type)
-        prefix = model["spice_prefix"]
+        model  = lookup(comp.type)
+        if not model:
+            continue
+        prefix = model.get("spice_prefix", comp.type[0].upper())
         counter[prefix] = counter.get(prefix, 0) + 1
         ref = f"{prefix}{counter[prefix]}"
-        lines.append(f"{ref} {comp.node1} {comp.node2} {comp.value}")
+        lines.append(f"{ref} {comp.nodes[0]} {comp.nodes[1]} {comp.value}")
 
     if ckt.port_in:
         lines.append("")

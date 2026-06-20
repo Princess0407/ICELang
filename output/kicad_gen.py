@@ -4,7 +4,8 @@ import uuid
 sys.path.insert(0, '/home/princess/icelang')
 
 from icelang_parser import CktBlock
-from component_models import MODELS
+from component_registry import lookup as _reg_lookup
+MODELS = {}
 
 SHEET_CENTRE_X = 150.0
 SHEET_CENTRE_Y = 100.0
@@ -258,13 +259,13 @@ def generate(ckt, placed, routing):
         if not lib_id:
             continue
 
-        model  = MODELS.get(comp.type)
+        model  = _reg_lookup(comp.type)
         prefix = model["spice_prefix"] if model else comp.type[0].upper()
         counter[prefix] = counter.get(prefix, 0) + 1
         ref    = f"{prefix}{counter[prefix]}"
 
-        raw_x1, raw_y1 = placed.get(comp.node1, (0.0, 0.0))
-        raw_x2, raw_y2 = placed.get(comp.node2, (0.0, 0.0))
+        raw_x1, raw_y1 = placed.get(comp.nodes[0], (0.0, 0.0))
+        raw_x2, raw_y2 = placed.get(comp.nodes[1], (0.0, 0.0))
 
         mid_x = (raw_x1 + raw_x2) / 2
         mid_y = (raw_y1 + raw_y2) / 2

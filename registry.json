@@ -193,5 +193,35 @@
       "3"
     ],
     "aliases": []
+  },
+  "filter_cap": {
+    "kicad_symbol": "Device:C",
+    "spice_prefix": "C",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": []
+  },
+  "pull_down": {
+    "kicad_symbol": "Device:R",
+    "spice_prefix": "R",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": []
+  },
+  "series_res": {
+    "kicad_symbol": "Device:R",
+    "spice_prefix": "R",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": []
   }
 }

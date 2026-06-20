@@ -44,21 +44,22 @@ class CktBlock:
 
 grammar = r"""
     start: ckt_block+
-    ckt_block: "ckt" NAME ":" statement+ "done"
+    ckt_block: "ckt" NAME ":" NEWLINE statement+ "done" NEWLINE?
     statement: port_in_decl | port_out_decl | component_stmt | define_stmt | use_stmt
-    port_in_decl:  "port_in"  ":" NAME
-    port_out_decl: "port_out" ":" NAME NAME?
-    component_stmt: NAME token+
-    define_stmt: "define" NAME "kicad" "=" QUOTED_STR "spice" "=" NAME "pins" "=" INT
-    use_stmt: "use" NAME NAME+
+    port_in_decl:  "port_in"  ":" NAME NEWLINE
+    port_out_decl: "port_out" ":" NAME NAME? NEWLINE
+    component_stmt: NAME token+ NEWLINE
+    define_stmt: "define" NAME "kicad" "=" QUOTED_STR "spice" "=" NAME "pins" "=" INT NEWLINE
+    use_stmt: "use" NAME NAME+ NEWLINE
     token: NAME  -> tok_name
          | VALUE -> tok_value
     QUOTED_STR.3: /\"[^\"]*\"/
     INT.2:        /[0-9]+/
     VALUE.1:      /[0-9]+(\.[0-9]+)?[pnumkMGTfF]?[a-zA-Z]*/
     NAME.1:       /[a-zA-Z_][a-zA-Z0-9_]*/
-    %import common.WS
-    %ignore WS
+    %import common.NEWLINE
+    %import common.WS_INLINE
+    %ignore WS_INLINE
 """
 
 parser = Lark(grammar, parser='earley')
@@ -75,7 +76,7 @@ class ICELangTransformer(Transformer):
     def component_stmt(self, items):
         from component_registry import lookup
         comp_type   = str(items[0]).lower()
-        tokens      = list(items[1:])
+        tokens      = [t for t in items[1:] if isinstance(t, tuple)]
         entry       = lookup(comp_type)
         if entry:
             pin_count   = entry["pin_count"]
