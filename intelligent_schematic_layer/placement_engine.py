@@ -9,7 +9,11 @@ GRID = 2.54
 
 
 def get_positions(G: nx.Graph) -> dict:
-    return nx.spring_layout(G, k=3.0, iterations=200, seed=42)
+    n = max(G.number_of_nodes(), 1)
+    k = 3.0 + (n * 0.5)
+    # use graph-dependent seed so different circuits get different layouts
+    seed = sum(hash(node) for node in G.nodes()) % 10000
+    return nx.spring_layout(G, k=k, iterations=300, seed=seed)
 
 
 def apply_signal_flow(positions: dict, G: nx.Graph) -> dict:

@@ -75,25 +75,23 @@ def extract_symbol(lib_name, sym_name):
 
 
 def build_lib_symbols(comp_types, needs_gnd):
-    type_to_lib = {
-        "res":   ("Device", "R"),
-        "cap":   ("Device", "C"),
-        "ind":   ("Device", "L"),
-        "diode": ("Device", "D"),
-        "bjt":   ("Device", "Q_NPN_BCE"),
-        "mos":   ("Device", "NMOS"),
-        "vol":   ("Device", "Battery"),
-    }
     parts = []
     seen  = set()
     for ct in comp_types:
-        if ct in type_to_lib and ct not in seen:
-            lib, sym = type_to_lib[ct]
-            s = extract_symbol(lib, sym)
-            if s:
-                parts.append(s)
-                seen.add(ct)
-                print(f"  embedded {lib}:{sym}")
+        if ct in seen:
+            continue
+        entry = _reg_lookup(ct)
+        if not entry:
+            continue
+        lib_id = entry.get("kicad_symbol", "")
+        if ":" not in lib_id:
+            continue
+        lib, sym = lib_id.split(":", 1)
+        s = extract_symbol(lib, sym)
+        if s:
+            parts.append(s)
+            seen.add(ct)
+            print(f"  embedded {lib}:{sym}")
     if needs_gnd:
         s = extract_symbol("power", "GND")
         if s:
@@ -224,15 +222,11 @@ def _global_label(name, x, y, shape="input"):
   )"""
 
 
-TYPE_TO_LIB = {
-    "res":   "Device:R",
-    "cap":   "Device:C",
-    "ind":   "Device:L",
-    "diode": "Device:D",
-    "bjt":   "Device:Q_NPN_BCE",
-    "mos":   "Device:NMOS",
-    "vol":   "Device:Battery",
-}
+def get_lib_id(comp_type: str) -> str:
+    entry = _reg_lookup(comp_type)
+    if entry:
+        return entry["kicad_symbol"]
+    return None
 
 
 def generate(ckt, placed, routing):
@@ -255,7 +249,7 @@ def generate(ckt, placed, routing):
     gnd_counter = 0
 
     for comp in ckt.components:
-        lib_id = TYPE_TO_LIB.get(comp.type)
+        lib_id = get_lib_id(comp.type)
         if not lib_id:
             continue
 

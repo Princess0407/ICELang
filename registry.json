@@ -223,5 +223,94 @@
       "2"
     ],
     "aliases": []
+  },
+  "jfet_n": {
+    "kicad_symbol": "Device:JFET_N",
+    "spice_prefix": "J",
+    "pin_count": 3,
+    "pin_names": [
+      "G",
+      "D",
+      "S"
+    ],
+    "aliases": [
+      "njfet",
+      "2N5457"
+    ]
+  },
+  "led": {
+    "kicad_symbol": "Device:LED",
+    "spice_prefix": "D",
+    "pin_count": 2,
+    "pin_names": [
+      "A",
+      "K"
+    ],
+    "aliases": [
+      "LED"
+    ]
+  },
+  "zener": {
+    "kicad_symbol": "Device:D_Zener",
+    "spice_prefix": "D",
+    "pin_count": 2,
+    "pin_names": [
+      "A",
+      "K"
+    ],
+    "aliases": [
+      "zener_diode"
+    ]
+  },
+  "xtal": {
+    "kicad_symbol": "Device:Crystal",
+    "spice_prefix": "Y",
+    "pin_count": 2,
+    "pin_names": [
+      "1",
+      "2"
+    ],
+    "aliases": [
+      "crystal",
+      "oscillator"
+    ]
+  },
+  "transformer": {
+    "kicad_symbol": "Device:Transformer",
+    "spice_prefix": "T",
+    "pin_count": 4,
+    "pin_names": [
+      "L1.1",
+      "L1.2",
+      "L2.1",
+      "L2.2"
+    ],
+    "aliases": [
+      "xfmr"
+    ]
+  },
+  "gnd": {
+    "kicad_symbol": "power:GND",
+    "spice_prefix": "GND",
+    "pin_count": 1,
+    "pin_names": [
+      "GND"
+    ],
+    "aliases": [
+      "ground",
+      "gnd_ref"
+    ]
+  },
+  "vcc": {
+    "kicad_symbol": "power:VCC",
+    "spice_prefix": "VCC",
+    "pin_count": 1,
+    "pin_names": [
+      "VCC"
+    ],
+    "aliases": [
+      "vdd",
+      "power_rail"
+    ]
   }
 }
