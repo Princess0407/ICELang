@@ -78,7 +78,7 @@
     ]
   },
   "bjt_npn": {
-    "kicad_symbol": "Device:Q_NPN_BCE",
+    "kicad_symbol": "Device:Q_NPN",
     "spice_prefix": "Q",
     "pin_count": 3,
     "pin_names": [
@@ -94,7 +94,7 @@
     ]
   },
   "bjt_pnp": {
-    "kicad_symbol": "Device:Q_PNP_BCE",
+    "kicad_symbol": "Device:Q_PNP",
     "spice_prefix": "Q",
     "pin_count": 3,
     "pin_names": [
@@ -109,14 +109,13 @@
     ]
   },
   "nmos": {
-    "kicad_symbol": "Device:NMOS",
+    "kicad_symbol": "Device:Q_NMOS",
     "spice_prefix": "M",
     "pin_count": 4,
     "pin_names": [
       "G",
       "D",
-      "S",
-      "B"
+      "S"
     ],
     "aliases": [
       "mosfet_n",
@@ -124,14 +123,13 @@
     ]
   },
   "pmos": {
-    "kicad_symbol": "Device:PMOS",
+    "kicad_symbol": "Device:Q_PMOS",
     "spice_prefix": "M",
     "pin_count": 4,
     "pin_names": [
       "G",
       "D",
-      "S",
-      "B"
+      "S"
     ],
     "aliases": [
       "mosfet_p",
@@ -225,13 +223,13 @@
     "aliases": []
   },
   "jfet_n": {
-    "kicad_symbol": "Device:JFET_N",
+    "kicad_symbol": "Device:Q_NJFET_GSD",
     "spice_prefix": "J",
     "pin_count": 3,
     "pin_names": [
       "G",
-      "D",
-      "S"
+      "S",
+      "D"
     ],
     "aliases": [
       "njfet",
@@ -276,7 +274,7 @@
     ]
   },
   "transformer": {
-    "kicad_symbol": "Device:Transformer",
+    "kicad_symbol": "Device:Transformer_1P_1S",
     "spice_prefix": "T",
     "pin_count": 4,
     "pin_names": [
