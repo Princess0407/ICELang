@@ -1,121 +1,135 @@
 import networkx as nx
 
-GRID = 2.54
+GRID           = 2.54
+SERIES_SPACING = 5.08   # world units between series nodes  (~25mm KiCad)
+SHUNT_DEPTH    = -6.35  # world units below signal path     (~32mm KiCad)
+SHUNT_X_GAP    = 5.08   # world units between parallel shunts
+POWER_NODES    = {"gnd", "vcc", "vdd", "vdd3v3", "vdd5v"}
 
 
-def build_component_graph(ckt):
-    G = nx.Graph()
-    n = len(ckt.components)
-    for i in range(n):
-        G.add_node(i)
+def _classify(ckt):
+    series = []
+    shunts = {}   # signal_node -> [comp_index, ...]
 
-    net_map = {}
     for i, comp in enumerate(ckt.components):
-        for node in comp.nodes:
-            net_map.setdefault(node, []).append(i)
-
-    for node, comps in net_map.items():
-        if node in ("gnd", "vcc", "vdd"):
+        if len(comp.nodes) < 2:
             continue
-        for a in range(len(comps)):
-            for b in range(a + 1, len(comps)):
-                if G.has_edge(comps[a], comps[b]):
-                    G[comps[a]][comps[b]]["weight"] += 1
-                else:
-                    G.add_edge(comps[a], comps[b], weight=1)
+        n1, n2 = comp.nodes[0], comp.nodes[1]
+        p1 = n1 in POWER_NODES
+        p2 = n2 in POWER_NODES
 
-    return G, net_map
+        if p1 and p2:
+            # vol Vcc gnd ... -- both power nodes, treat as shunt at n1
+            shunts.setdefault(n1, []).append(i)
+        elif p1:
+            shunts.setdefault(n2, []).append(i)
+        elif p2:
+            shunts.setdefault(n1, []).append(i)
+        else:
+            series.append(i)
 
-
-def get_positions(G):
-    n = max(G.number_of_nodes(), 1)
-    if n == 0:
-        return {}
-    k = 3.0 + n * 0.6
-    seed = (n * 97 + G.number_of_edges() * 131) % 10000
-    return nx.spring_layout(G, k=k, iterations=300, seed=seed)
+    return series, shunts
 
 
-def apply_signal_flow(positions, ckt, net_map):
+def _trace_signal_path(ckt, series_indices):
     port_in = ckt.port_in.name if ckt.port_in else None
-    port_out_node = (ckt.port_out.node
-                     if ckt.port_out and ckt.port_out.node else None)
+    if not port_in:
+        nodes = []
+        for i in series_indices:
+            comp = ckt.components[i]
+            for n in comp.nodes:
+                if n not in nodes:
+                    nodes.append(n)
+        return nodes
 
-    if port_in and port_in in net_map:
-        input_comps = net_map[port_in]
-        for i in input_comps:
-            all_nets = [n for n, comps in net_map.items() if i in comps]
-            signal_nets = [n for n in all_nets
-                          if n not in ("gnd","vcc","vdd")]
-            if len(signal_nets) <= 2:
-                if i in positions:
-                    positions[i][0] = min(positions[i][0], -2.0)
+    # build adjacency from series components only
+    adj = {}
+    for i in series_indices:
+        comp = ckt.components[i]
+        if len(comp.nodes) < 2:
+            continue
+        n1, n2 = comp.nodes[0], comp.nodes[1]
+        adj.setdefault(n1, []).append(n2)
+        adj.setdefault(n2, []).append(n1)
 
-    if port_out_node and port_out_node in net_map:
-        output_comps = net_map[port_out_node]
-        for i in output_comps:
-            all_nets = [n for n, comps in net_map.items() if i in comps]
-            signal_nets = [n for n in all_nets
-                          if n not in ("gnd","vcc","vdd")]
-            if len(signal_nets) <= 2:
-                if i in positions:
-                    positions[i][0] = max(positions[i][0], 2.0)
+    # BFS from port_in
+    path    = [port_in]
+    visited = {port_in}
+    current = port_in
+    while True:
+        neighbors = [n for n in adj.get(current, [])
+                     if n not in visited and n not in POWER_NODES]
+        if not neighbors:
+            break
+        nxt = neighbors[0]
+        path.append(nxt)
+        visited.add(nxt)
+        current = nxt
 
-    if "gnd" in net_map:
-        for i in net_map["gnd"]:
-            if i in positions:
-                positions[i][1] = min(positions[i][1], -1.5)
-
-    return positions
+    return path
 
 
-def snap_to_grid(positions):
+def place(G, ckt) -> dict:
+    series, shunts = _classify(ckt)
+    path = _trace_signal_path(ckt, series)
+
+    placed = {}
+
+    # place signal path nodes horizontally
+    for idx, node in enumerate(path):
+        placed[node] = (idx * SERIES_SPACING, 0.0)
+
+    # any series nodes not on the traced path
+    for i in series:
+        comp = ckt.components[i]
+        for n in comp.nodes:
+            if n not in placed and n not in POWER_NODES:
+                placed[n] = (len(placed) * SERIES_SPACING, 0.0)
+
+    # place shunt components below their signal node
+    for sig_node, comp_indices in shunts.items():
+        if sig_node not in placed:
+            placed[sig_node] = (0.0, 0.0)
+        sx, sy = placed[sig_node]
+        n_shunts = len(comp_indices)
+
+        for k, ci in enumerate(comp_indices):
+            comp = ckt.components[ci]
+            n1, n2 = comp.nodes[0], comp.nodes[1]
+            power_node = n1 if n1 in POWER_NODES else n2
+
+            # space parallel shunts symmetrically around signal node
+            x_off = (k - (n_shunts - 1) / 2.0) * SHUNT_X_GAP
+            gnd_pos = (round(sx + x_off, 4), round(sy + SHUNT_DEPTH, 4))
+
+            # use a unique key if multiple shunts share the same power node
+            unique_key = f"{power_node}_shunt_{ci}"
+            placed[unique_key] = gnd_pos
+
+            # also keep the canonical power node at average position
+            if power_node not in placed:
+                placed[power_node] = gnd_pos
+
+    # snap to grid
     snapped = {}
-    for i, pos in positions.items():
-        x = round((pos[0] * 2) / GRID) * GRID
-        y = round((pos[1] * 2) / GRID) * GRID
-        snapped[i] = (round(x, 4), round(y, 4))
+    for node, (x, y) in placed.items():
+        sx = round(x / GRID) * GRID
+        sy = round(y / GRID) * GRID
+        snapped[node] = (round(sx, 4), round(sy, 4))
+
     return snapped
 
 
 def place_components(ckt):
-    G, net_map = build_component_graph(ckt)
-    positions = get_positions(G)
-    positions = apply_signal_flow(positions, ckt, net_map)
-    positions = snap_to_grid(positions)
-
-    for i in range(len(ckt.components)):
-        if i not in positions:
-            positions[i] = (0.0, 0.0)
-
-    return positions, net_map
-
-
-# for backward compatibility with older node based callers
-def place(G, ckt):
-    positions, _ = place_components(ckt)
-    result = {}
+    from intelligent_schematic_layer.graph_builder import build
+    G = build(ckt)
+    placed = place(G, ckt)
+    positions = {}
     for i, comp in enumerate(ckt.components):
-        pos = positions.get(i, (0.0, 0.0))
+        if comp.nodes:
+            positions[i] = placed.get(comp.nodes[0], (0.0, 0.0))
+    net_map = {}
+    for i, comp in enumerate(ckt.components):
         for node in comp.nodes:
-            if node not in result:
-                result[node] = pos
-    return result
-
-
-if __name__ == "__main__":
-    from icelang_parser import CktBlock, Component, PortIn, PortOut
-
-    ckt = CktBlock(
-        name="rc_filter",
-        port_in=PortIn(name="vin"),
-        port_out=PortOut(name="vout", node="mc"),
-        components=[
-            Component(type="res", nodes=["vin", "mc"], value="10k"),
-            Component(type="cap", nodes=["mc", "gnd"], value="100n"),
-        ]
-    )
-    positions, net_map = place_components(ckt)
-    print("component positions:")
-    for i, pos in positions.items():
-        print(f"  comp[{i}] ({ckt.components[i].type}) -> {pos}")
+            net_map.setdefault(node, []).append(i)
+    return positions, net_map
