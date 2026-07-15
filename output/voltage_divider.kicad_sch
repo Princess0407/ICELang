@@ -467,7 +467,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "f67f4eb9-da2b-43a5-ae42-71f952833d96")
+    (uuid "6eecc01b-afd0-4671-a661-5b81468d571d")
     (property "Reference" "V1"
       (at 152.032 111.7 0)
       (effects (font (size 1.27 1.27)))
@@ -484,7 +484,7 @@
     )
     (instances
       (project "schematic"
-        (path "/8d6ab1ba-8a61-4ffd-b9c6-a5cd288c6016"
+        (path "/dbbcfe0e-2bfa-4b7d-88b2-361c2dcb19ad"
           (reference "V1")
           (unit 1)
         )
@@ -498,7 +498,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "27111b3b-25e3-44fc-b660-bbfcdfdcace0")
+    (uuid "b5b392b4-fbe0-4160-b0c4-c518914427c6")
     (property "Reference" "R1"
       (at 164.732 99.0 0)
       (effects (font (size 1.27 1.27)))
@@ -515,7 +515,7 @@
     )
     (instances
       (project "schematic"
-        (path "/8d6ab1ba-8a61-4ffd-b9c6-a5cd288c6016"
+        (path "/dbbcfe0e-2bfa-4b7d-88b2-361c2dcb19ad"
           (reference "R1")
           (unit 1)
         )
@@ -529,7 +529,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "29e2acfc-df7c-40ad-b61d-9a1b08e81691")
+    (uuid "8b4bee7c-6070-4a1e-a772-e2eca5f1f7aa")
     (property "Reference" "R2"
       (at 177.432 111.7 0)
       (effects (font (size 1.27 1.27)))
@@ -546,7 +546,7 @@
     )
     (instances
       (project "schematic"
-        (path "/8d6ab1ba-8a61-4ffd-b9c6-a5cd288c6016"
+        (path "/dbbcfe0e-2bfa-4b7d-88b2-361c2dcb19ad"
           (reference "R2")
           (unit 1)
         )
@@ -560,7 +560,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "c6dfecf2-318c-4688-8c93-982a7b837a63")
+    (uuid "919c23fe-7b2b-4f0b-a059-f0973dc291dc")
     (property "Reference" "#PWR01"
       (at 150.0 131.75 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -577,7 +577,7 @@
     )
     (instances
       (project "schematic"
-        (path "/8d6ab1ba-8a61-4ffd-b9c6-a5cd288c6016"
+        (path "/dbbcfe0e-2bfa-4b7d-88b2-361c2dcb19ad"
           (reference "#PWR01")
           (unit 1)
         )
@@ -591,7 +591,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "94838f9d-14b6-4a7a-8aa4-ba7d7c8a26df")
+    (uuid "b8cf1a63-363a-4f17-a603-289a1c6094a2")
     (property "Reference" "#PWR02"
       (at 175.4 131.75 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -608,7 +608,7 @@
     )
     (instances
       (project "schematic"
-        (path "/8d6ab1ba-8a61-4ffd-b9c6-a5cd288c6016"
+        (path "/dbbcfe0e-2bfa-4b7d-88b2-361c2dcb19ad"
           (reference "#PWR02")
           (unit 1)
         )
@@ -618,10 +618,10 @@
 
   (global_label "VIN"
     (shape input)
-    (at 137.3 100.0 0)
+    (at 140.0 100.0 0)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "9079efb9-2c64-4764-9d1b-48e78f1b6d89")
+    (uuid "0c1a6efd-9de9-4b77-bc6a-31c273da705b")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -630,10 +630,10 @@
 
   (global_label "VOUT"
     (shape output)
-    (at 188.1 100.0 0)
+    (at 185.4 100.0 180)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "d4318012-84f3-4891-ae88-1292ed60785a")
+    (uuid "6f1ebb61-c01a-4dc6-a5bf-be6eaba8b0fb")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -643,37 +643,49 @@
   (wire
     (pts (xy 150.0 100.0) (xy 150.0 108.89))
     (stroke (width 0) (type default))
-    (uuid "15928664-d15d-4a52-ad67-d6081e4fa78c")
+    (uuid "14673c1d-fd37-493b-b2e9-95bc9a094202")
   )
 
   (wire
     (pts (xy 150.0 125.4) (xy 150.0 116.51))
     (stroke (width 0) (type default))
-    (uuid "623c0e4e-fd96-44ca-9de5-12e41459f838")
+    (uuid "cc81e080-a70d-4aaa-b1e8-fa86249afd32")
   )
 
   (wire
     (pts (xy 150.0 100.0) (xy 158.89 100.0))
     (stroke (width 0) (type default))
-    (uuid "6ef678e5-35bb-4cc4-a1b5-286a9dad9fc3")
+    (uuid "3fb1c4c0-7d7c-4320-927e-43b44725a50c")
   )
 
   (wire
     (pts (xy 175.4 100.0) (xy 166.51 100.0))
     (stroke (width 0) (type default))
-    (uuid "2e5173c1-6be0-498c-9762-904a9e0fb4a2")
+    (uuid "bc735d94-0b21-48ae-b89d-c1a359dab0a0")
   )
 
   (wire
     (pts (xy 175.4 100.0) (xy 175.4 108.89))
     (stroke (width 0) (type default))
-    (uuid "64af75f9-f9d2-40e1-8fc9-5b685e579dd4")
+    (uuid "bdfe7fb8-e3c2-4cc9-a5c9-9957f0f9aedd")
   )
 
   (wire
     (pts (xy 175.4 125.4) (xy 175.4 116.51))
     (stroke (width 0) (type default))
-    (uuid "78f3b50a-a80c-4788-b428-e35c1263245c")
+    (uuid "a6b0c8ae-fa98-4357-97dd-edcce81fe1cd")
+  )
+
+  (wire
+    (pts (xy 140.0 100.0) (xy 150.0 100.0))
+    (stroke (width 0) (type default))
+    (uuid "25084e61-07bb-486b-9e61-0b254dafebbd")
+  )
+
+  (wire
+    (pts (xy 175.4 100.0) (xy 185.4 100.0))
+    (stroke (width 0) (type default))
+    (uuid "a8980ac2-8bc5-4458-b73d-8d5c86792b10")
   )
 
   (sheet_instances

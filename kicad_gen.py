@@ -212,6 +212,14 @@ def _gnd_symbol(ref, x, y):
   )"""
 
 
+def _net_label(name, x, y):
+    return f"""  (label "{name}"
+    (at {x} {y} 0)
+    (fields_autoplaced yes)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid "{_uid()}")
+  )"""
+
 
 def _place_two_terminal(comp, comp_idx, placed, lib_id, ref, blocks, wire_segs):
     node1 = comp.nodes[0] if len(comp.nodes) > 0 else "vin"
@@ -226,6 +234,7 @@ def _place_two_terminal(comp, comp_idx, placed, lib_id, ref, blocks, wire_segs):
             pos_node, neg_node = node2, node1
         else:
             pos_node, neg_node = node1, node2
+
         neg_key = f"{neg_node}_driver_{comp_idx}"
         raw_x1, raw_y1 = placed.get(pos_node, (0.0, 0.0))
         raw_x2, raw_y2 = placed.get(neg_key, placed.get(neg_node, (0.0, -6.35)))
@@ -250,28 +259,12 @@ def _place_two_terminal(comp, comp_idx, placed, lib_id, ref, blocks, wire_segs):
     node1_pin, node2_pin = closer_pin(n1_kx, n1_ky, pa, pb)
 
     blocks.append(_placed_symbol(lib_id, ref, kx, ky, comp.value, rotation))
+
     for seg in manhattan_wires(n1_kx, n1_ky, node1_pin[0], node1_pin[1]):
         wire_segs.append(seg)
     for seg in manhattan_wires(n2_kx, n2_ky, node2_pin[0], node2_pin[1]):
         wire_segs.append(seg)
 
-
-def _global_label(name, x, y, shape="input", rotation=0):
-    uid = _uid()
-    intersheet = "${INTERSHEET_REFS}"
-    return (
-        f'  (global_label "{name}"\n'
-        f'    (shape {shape})\n'
-        f'    (at {x} {y} {rotation})\n'
-        f'    (fields_autoplaced yes)\n'
-        f'    (effects (font (size 1.27 1.27)))\n'
-        f'    (uuid "{uid}")\n'
-        f'    (property "Intersheet References" "{intersheet}"\n'
-        '      (at 0 0 0)\n'
-        '      (effects (font (size 1.27 1.27)) hide)\n'
-        '    )\n'
-        '  )'
-    )
 
 def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
     from intelligent_schematic_layer.graph_builder import build
@@ -301,8 +294,7 @@ def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
     blocks.append(f'  (title_block (title "{ckt.name}"))')
     blocks.append(build_lib_symbols(comp_types, needs_gnd))
 
-    counter     = {}
-    gnd_counter = 0
+    counter = {}
 
     for comp in ckt.components:
         entry  = _reg_lookup(comp.type)
@@ -338,8 +330,9 @@ def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
             _place_two_terminal(comp, comp_idx, placed, lib_id, ref,
                                 blocks, wire_segs)
 
-    # GND symbols
+    gnd_counter          = 0
     placed_gnd_positions = set()
+
     for key, (raw_x, raw_y) in placed.items():
         is_gnd_key = (
             key == "gnd"
@@ -354,33 +347,28 @@ def generate(ckt: CktBlock, placed: dict, routing: dict) -> str:
                 gnd_counter += 1
                 blocks.append(_gnd_symbol(f"#PWR0{gnd_counter}", kx, ky))
 
-    # VIN label: rotation=180 so pin faces RIGHT toward the circuit
+    print(f"port_in node: {ckt.port_in.name}, placed at: {placed.get(ckt.port_in.name)}")
+    print(f"port_out node: {ckt.port_out.node}, placed at: {placed.get(ckt.port_out.node)}")
+    print(f"full placed dict: {placed}")
+
     if ckt.port_in:
         node = ckt.port_in.name
         if node in placed:
             raw_x, raw_y = placed[node]
-            node_kx, node_ky = _scale(raw_x, raw_y)
-            label_kx = round(node_kx - 10.0, 4)
-            blocks.append(_global_label("VIN", label_kx, node_ky,
-                                        shape="input", rotation=0))
-            wire_segs.append((label_kx, node_ky, node_kx, node_ky))
+            kx, ky = _scale(raw_x, raw_y)
+            blocks.append(_net_label("VIN", kx, ky))
 
-    # VOUT label: rotation=0 so pin faces LEFT toward the circuit
     if ckt.port_out and ckt.port_out.node:
         node = ckt.port_out.node
         if node in placed:
             raw_x, raw_y = placed[node]
-            node_kx, node_ky = _scale(raw_x, raw_y)
-            label_kx = round(node_kx + 10.0, 4)
-            blocks.append(_global_label("VOUT", label_kx, node_ky,
-                                        shape="output", rotation=180))
-            wire_segs.append((node_kx, node_ky, label_kx, node_ky))
+            kx, ky = _scale(raw_x, raw_y)
+            blocks.append(_net_label("VOUT", kx, ky))
 
-    # Emit all wires (deduped)
     seen_segs = set()
     for seg in wire_segs:
-        key = (round(seg[0],2), round(seg[1],2),
-               round(seg[2],2), round(seg[3],2))
+        key = (round(seg[0], 2), round(seg[1], 2),
+               round(seg[2], 2), round(seg[3], 2))
         rev = (key[2], key[3], key[0], key[1])
         if key not in seen_segs and rev not in seen_segs:
             seen_segs.add(key)
