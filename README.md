@@ -6,8 +6,6 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux-informational)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
 ![eSim](https://img.shields.io/badge/eSim-2.3%20%7C%202.4%20%7C%202.5-purple)
-![Tests](https://img.shields.io/badge/Tests-5%20passing-brightgreen)
-![Circuits](https://img.shields.io/badge/Test%20Circuits-4%2F4%20passing-brightgreen)
 ![Version](https://img.shields.io/badge/Version-3.0-blueviolet)
 
 [Overview](#overview) · [Versions](#versions) · [Architecture](#architecture) · [Pipeline](#pipeline) · [Syntax](#syntax) · [Component Registry](#component-registry) · [Test Circuits](#test-circuits) · [Plugin Roadmap](#kicad-plugin-roadmap) · [Tests](#tests)
@@ -23,7 +21,7 @@ ICELang is a compiler that takes a plain-text circuit description written in a p
 
 The compiler has six stages: lexing and parsing via Lark, AST construction, graph IR via NetworkX, topology-aware placement, Manhattan wire routing, and S-expression code generation. No manual schematic drawing. No hardcoded coordinates. No code changes required to add new component types.
 
-**100% of test circuits** compile end-to-end to valid, openable KiCad schematics across v2.2 and v3.0.
+**All the circuits with two terminal components** compile end-to-end to valid, openable KiCad schematics across v2.2 and v3.0. Additionaly, the user has the flexibility to add the components right in the code by declaring it via provided syntax.
 
 ---
 
@@ -47,8 +45,21 @@ v2.2 is the first version that produces clean, correct KiCad schematics end-to-e
 **v2.2 syntax:**
 
 ```
+ckt <circuit_name>:
+    port_in:  <input_node>
+    port_out: <label> <output_node>
+
+    <type> <node1> <node2> <value>
+
+    define <alias> kicad="<Library:Symbol>" spice=<prefix> pins=<n>
+done
+```
+
+Example — RC filter:
+
+```
 ckt rc_filter:
-    port_in: Vin
+    port_in:  Vin
     port_out: Vout mid
     res Vin mid 1k
     cap mid gnd 220n
@@ -61,13 +72,15 @@ done
 - No pin polarity convention — shunt component orientation (which pin faces the signal node) is determined by geometry, not semantics
 - Components registered via `define` inherit the base type's pin order, which may be wrong for polarized components
 
-**v2.2 schematic output — RC filter:**
+**v1.0 schematic output — RC filter(earliest version):**
 
-> `[screenshot: docs/v2_rc_filter.png]`
+<img width="1192" height="785" alt="image" src="https://github.com/user-attachments/assets/89c6ce2b-ffbe-44fd-82cf-866a1748a0ae" />
+
 
 **v2.2 schematic output — signal conditioner:**
 
-> `[screenshot: docs/v2_signal_conditioner.png]`
+<img width="971" height="612" alt="image" src="https://github.com/user-attachments/assets/6e54393c-1a4d-41e4-b72d-0cfbf97df62b" />
+
 
 ---
 
@@ -88,9 +101,23 @@ v3.0 introduces `ncomp`, a runtime component registration instruction that makes
 **v3.0 syntax — `ncomp`:**
 
 ```
+ckt <circuit_name>:
+    ncomp <alias>: <KiCadDeviceSymbol>
+
+    port_in:  <input_node>
+    port_out: <label> <output_node>
+
+    <type>  <node1> <node2> <value>
+    <alias> <node1> <node2> <value>
+done
+```
+
+Example — zener clamp:
+
+```
 ckt zener_clamp:
     ncomp zen: D_Zener
-    port_in: Vin
+    port_in:  Vin
     port_out: Vout mid
     res Vin mid 1k
     zen mid gnd 5V1
@@ -107,11 +134,7 @@ done
 
 **v3.0 schematic output — zener clamp:**
 
-> `[screenshot: docs/v3_zener_clamp.png]`
-
-**v3.0 schematic output — RC filter (unchanged from v2.2):**
-
-> `[screenshot: docs/v3_rc_filter.png]`
+<img width="899" height="568" alt="image" src="https://github.com/user-attachments/assets/709281dd-6842-40f9-949a-f90cf0315494" />
 
 ---
 
@@ -466,7 +489,8 @@ done
 
 Driver source left of VIN, two series resistors on the signal path, second resistor shunts to GND. Verifies: driver placement, two-node series path, shunt on final node.
 
-> `[screenshot: docs/voltage_divider.png]`
+<img width="747" height="520" alt="image" src="https://github.com/user-attachments/assets/a541a242-340e-47b2-b36a-3fddc463f2f1" />
+
 
 ---
 
@@ -487,7 +511,8 @@ done
 
 Two parallel shunts on the same signal node. Verifies: `define` keyword type resolution, parallel shunt symmetric placement.
 
-> `[screenshot: docs/signal_conditioner.png]`
+<img width="978" height="605" alt="image" src="https://github.com/user-attachments/assets/0a619b52-dc97-4591-ac56-184bdb5e8ef8" />
+
 
 ---
 
@@ -505,7 +530,8 @@ done
 
 Runtime symbol registration. `D_Zener` is looked up in the KiCad library at parse time, pins `K` and `A` are read, `signal_pin=K` is inferred, and the symbol is rotated 90 degrees for correct vertical placement with cathode at top. Verifies: `ncomp` registration, pin polarity convention, horizontal-to-vertical rotation math.
 
-> `[screenshot: docs/zener_clamp.png]`
+<img width="812" height="557" alt="image" src="https://github.com/user-attachments/assets/b944781d-b6d9-4078-ac50-7717b2758aab" />
+
 
 ---
 
@@ -539,7 +565,7 @@ A KiCad plugin is a Python script that KiCad loads at startup from its plugin di
 
 Merging your code into `FOSSEE/eSim` via a PR makes ICELang part of the eSim source tree. It does not automatically make it a plugin. eSim itself is a PyQt5 application that wraps KiCad and ngspice. A PR to eSim means your code ships with eSim, but you still need to write the plugin interface layer that connects the eSim UI to your compiler.
 
-### What you need to build for v4.0
+###  v4.0
 
 **Step 1 — Plugin entry point**
 
