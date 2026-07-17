@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from collections import Counter
 
-
 @dataclass
 class Component:
     type:  str
@@ -33,6 +32,13 @@ class DefineStmt:
     pin_count:    int
 
 @dataclass
+class NcompStmt:
+    name:         str
+    kicad_symbol: str
+    spice_prefix: str
+    pin_names:    List[str]
+
+@dataclass
 class CktBlock:
     name:       str
     port_in:    Optional[PortIn]  = None
@@ -40,16 +46,17 @@ class CktBlock:
     components: List[Component]   = field(default_factory=list)
     uses:       List[UseStmt]     = field(default_factory=list)
     defines:    List[DefineStmt]  = field(default_factory=list)
-
+    ncomps:     List[NcompStmt]   = field(default_factory=list)
 
 grammar = r"""
     start: ckt_block+
     ckt_block: "ckt" NAME ":" NEWLINE statement+ "done" NEWLINE?
-    statement: port_in_decl | port_out_decl | component_stmt | define_stmt | use_stmt
+    statement: port_in_decl | port_out_decl | component_stmt | define_stmt | use_stmt | ncomp_stmt
     port_in_decl:  "port_in"  ":" NAME NEWLINE
     port_out_decl: "port_out" ":" NAME NAME? NEWLINE
     component_stmt: NAME token+ NEWLINE
     define_stmt: "define" NAME "kicad" "=" QUOTED_STR "spice" "=" NAME "pins" "=" INT NEWLINE
+    ncomp_stmt: "ncomp" NAME ":" NAME NEWLINE
     use_stmt: "use" NAME NAME+ NEWLINE
     token: NAME  -> tok_name
          | VALUE -> tok_value
@@ -64,9 +71,7 @@ grammar = r"""
 
 parser = Lark(grammar, parser='earley')
 
-
 class ICELangTransformer(Transformer):
-
     def tok_name(self, items):
         return ("name", str(items[0]))
 
@@ -113,6 +118,33 @@ class ICELangTransformer(Transformer):
         return DefineStmt(name=name, kicad_symbol=kicad_symbol,
                           spice_prefix=spice_prefix, pin_count=pin_count)
 
+    def ncomp_stmt(self, items):
+        from component_registry import register
+        from pin_reader import get_pin_offsets
+        name       = str(items[0]).lower()
+        sym_name   = str(items[1])
+        kicad_sym  = f"Device:{sym_name}"
+        offsets    = get_pin_offsets(kicad_sym)
+        if not offsets:
+            raise ValueError(f"ncomp: symbol '{kicad_sym}' not found in KiCad Device library")
+        if len(offsets) != 2:
+            raise ValueError(f"ncomp: '{kicad_sym}' has {len(offsets)} pins — only two-terminal components supported")
+        pin_names    = list(offsets.keys())
+        spice_prefix = name[0].upper()
+        if "K" in pin_names:
+            signal_pin = "K"
+        elif "A" in pin_names:
+            signal_pin = "A"
+        elif "+" in pin_names:
+            signal_pin = "+"
+        else:
+            signal_pin = None
+        register(name=name, kicad_symbol=kicad_sym,
+                 spice_prefix=spice_prefix, pin_count=2,
+                 pin_names=pin_names, signal_pin=signal_pin)
+        return NcompStmt(name=name, kicad_symbol=kicad_sym,
+                         spice_prefix=spice_prefix, pin_names=pin_names)
+
     def port_in_decl(self, items):
         return PortIn(name=str(items[0]).lower())
 
@@ -131,19 +163,20 @@ class ICELangTransformer(Transformer):
     def ckt_block(self, items):
         name = str(items[0]).lower()
         port_in, port_out = None, None
-        components, uses, defines = [], [], []
+        components, uses, defines, ncomps = [], [], [], []
         for item in items[1:]:
             if isinstance(item, PortIn):       port_in = item
             elif isinstance(item, PortOut):    port_out = item
             elif isinstance(item, Component):  components.append(item)
             elif isinstance(item, UseStmt):    uses.append(item)
             elif isinstance(item, DefineStmt): defines.append(item)
+            elif isinstance(item, NcompStmt):  ncomps.append(item)
         return CktBlock(name=name, port_in=port_in, port_out=port_out,
-                        components=components, uses=uses, defines=defines)
+                        components=components, uses=uses, defines=defines,
+                        ncomps=ncomps)
 
     def start(self, items):
         return list(items)
-
 
 def analyse(ckt: CktBlock) -> list:
     errors    = []
@@ -162,7 +195,6 @@ def analyse(ckt: CktBlock) -> list:
     if not ckt.components:
         errors.append("Circuit has no components")
     return errors
-
 
 if __name__ == "__main__":
     test_cases = [
@@ -220,7 +252,6 @@ ckt rc_stage:
     res mc 10k
     mc cap gnd 100n
 done
-
 ckt dual_rc:
     port_in: Vin
     port_out: Vout mid2
@@ -228,12 +259,19 @@ ckt dual_rc:
     use rc_stage mid1 mid2
 done
 """),
+        ("ncomp zener", """
+ckt zener_clamp:
+    ncomp zen: D_Zener
+    port_in: Vin
+    port_out: Vout mid
+    res mid 1k
+    zen mid gnd 5V1
+done
+"""),
     ]
-
     transformer = ICELangTransformer()
     passed = 0
     failed = 0
-
     for test_name, source in test_cases:
         print(f"\n{'─'*50}")
         print(f"Test: {test_name}")
@@ -251,6 +289,8 @@ done
                     print(f"  {comp.type:15} nodes={comp.nodes} value={comp.value}")
                 for use in ckt.uses:
                     print(f"  use {use.circuit_name} {use.nodes}")
+                for nc in ckt.ncomps:
+                    print(f"  ncomp {nc.name} → {nc.kicad_symbol}")
                 errors = analyse(ckt)
                 if errors:
                     for e in errors: print(f"  SEMANTIC: {e}")
@@ -260,7 +300,6 @@ done
         except Exception as e:
             print(f"  FAILED: {e}")
             failed += 1
-
     print(f"\n{'='*50}")
     print(f"Results: {passed} passed  {failed} failed")
     print(f"{'='*50}")

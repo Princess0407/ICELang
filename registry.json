@@ -310,5 +310,15 @@
       "vdd",
       "power_rail"
     ]
+  },
+  "zen": {
+    "kicad_symbol": "Device:D_Zener",
+    "spice_prefix": "Z",
+    "pin_count": 2,
+    "pin_names": [
+      "K",
+      "A"
+    ],
+    "aliases": []
   }
 }

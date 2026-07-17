@@ -16,6 +16,8 @@ def generate(ckt: CktBlock) -> str:
         prefix = model.get("spice_prefix", comp.type[0].upper())
         counter[prefix] = counter.get(prefix, 0) + 1
         ref = f"{prefix}{counter[prefix]}"
+        if len(comp.nodes) < 2:
+            continue
         lines.append(f"{ref} {comp.nodes[0]} {comp.nodes[1]} {comp.value}")
 
     if ckt.port_in:

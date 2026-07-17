@@ -8,7 +8,7 @@
 
   (paper "A4")
 
-  (title_block (title "rc_filter"))
+  (title_block (title "zener_clamp"))
 
   (lib_symbols
     (symbol "Device:R"
@@ -135,36 +135,35 @@
     		)
     		(embedded_fonts no)
     	)
-    (symbol "Device:C"
+    (symbol "Device:D_Zener"
     		(pin_numbers
     			(hide yes)
     		)
     		(pin_names
-    			(offset 0.254)
+    			(offset 1.016)
+    			(hide yes)
     		)
     		(exclude_from_sim no)
     		(in_bom yes)
     		(on_board yes)
-    		(property "Reference" "C"
-    			(at 0.635 2.54 0)
+    		(property "Reference" "D"
+    			(at 0 2.54 0)
     			(effects
     				(font
     					(size 1.27 1.27)
     				)
-    				(justify left)
     			)
     		)
-    		(property "Value" "C"
-    			(at 0.635 -2.54 0)
+    		(property "Value" "D_Zener"
+    			(at 0 -2.54 0)
     			(effects
     				(font
     					(size 1.27 1.27)
     				)
-    				(justify left)
     			)
     		)
     		(property "Footprint" ""
-    			(at 0.9652 -3.81 0)
+    			(at 0 0 0)
     			(effects
     				(font
     					(size 1.27 1.27)
@@ -181,7 +180,7 @@
     				(hide yes)
     			)
     		)
-    		(property "Description" "Unpolarized capacitor"
+    		(property "Description" "Zener diode"
     			(at 0 0 0)
     			(effects
     				(font
@@ -190,7 +189,7 @@
     				(hide yes)
     			)
     		)
-    		(property "ki_keywords" "cap capacitor"
+    		(property "ki_keywords" "diode"
     			(at 0 0 0)
     			(effects
     				(font
@@ -199,7 +198,7 @@
     				(hide yes)
     			)
     		)
-    		(property "ki_fp_filters" "C_*"
+    		(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
     			(at 0 0 0)
     			(effects
     				(font
@@ -208,13 +207,13 @@
     				(hide yes)
     			)
     		)
-    		(symbol "C_0_1"
+    		(symbol "D_Zener_0_1"
     			(polyline
     				(pts
-    					(xy -2.032 0.762) (xy 2.032 0.762)
+    					(xy -1.27 -1.27) (xy -1.27 1.27) (xy -0.762 1.27)
     				)
     				(stroke
-    					(width 0.508)
+    					(width 0.254)
     					(type default)
     				)
     				(fill
@@ -223,10 +222,22 @@
     			)
     			(polyline
     				(pts
-    					(xy -2.032 -0.762) (xy 2.032 -0.762)
+    					(xy 1.27 0) (xy -1.27 0)
     				)
     				(stroke
-    					(width 0.508)
+    					(width 0)
+    					(type default)
+    				)
+    				(fill
+    					(type none)
+    				)
+    			)
+    			(polyline
+    				(pts
+    					(xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)
+    				)
+    				(stroke
+    					(width 0.254)
     					(type default)
     				)
     				(fill
@@ -234,11 +245,11 @@
     				)
     			)
     		)
-    		(symbol "C_1_1"
+    		(symbol "D_Zener_1_1"
     			(pin passive line
-    				(at 0 3.81 270)
-    				(length 2.794)
-    				(name "~"
+    				(at -3.81 0 0)
+    				(length 2.54)
+    				(name "K"
     					(effects
     						(font
     							(size 1.27 1.27)
@@ -254,9 +265,9 @@
     				)
     			)
     			(pin passive line
-    				(at 0 -3.81 90)
-    				(length 2.794)
-    				(name "~"
+    				(at 3.81 0 180)
+    				(length 2.54)
+    				(name "A"
     					(effects
     						(font
     							(size 1.27 1.27)
@@ -383,7 +394,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "ee562445-9610-4369-a8d0-81c215e92eb2")
+    (uuid "8a41f2f2-ee25-4c18-a169-bde6ac1b86be")
     (property "Reference" "R1"
       (at 164.732 99.0 0)
       (effects (font (size 1.27 1.27)))
@@ -400,7 +411,7 @@
     )
     (instances
       (project "schematic"
-        (path "/77dd2b25-75e0-4ca1-b221-e21b1ceede50"
+        (path "/4e1659b4-80b2-4c35-b056-f3db928ac7e2"
           (reference "R1")
           (unit 1)
         )
@@ -409,17 +420,17 @@
   )
 
   (symbol
-    (lib_id "Device:C")
-    (at 175.4 112.7 0)
+    (lib_id "Device:D_Zener")
+    (at 175.4 112.7 90)
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "1fd7eb9e-fcd1-40c0-ab1b-cc4e092551b5")
-    (property "Reference" "C1"
+    (uuid "e2235dd2-b5a6-4a02-a541-d502acbe13fd")
+    (property "Reference" "Z1"
       (at 177.432 111.7 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Value" "220n"
+    (property "Value" "5V"
       (at 173.368 111.7 0)
       (effects (font (size 1.27 1.27)))
     )
@@ -431,8 +442,8 @@
     )
     (instances
       (project "schematic"
-        (path "/77dd2b25-75e0-4ca1-b221-e21b1ceede50"
-          (reference "C1")
+        (path "/4e1659b4-80b2-4c35-b056-f3db928ac7e2"
+          (reference "Z1")
           (unit 1)
         )
       )
@@ -445,7 +456,7 @@
     (unit 1)
     (in_bom yes)
     (on_board yes)
-    (uuid "eefec783-08e0-401d-bbaf-d9b2d47d9db0")
+    (uuid "c01a8712-e7fc-4861-8d4b-851e6f87a2be")
     (property "Reference" "#PWR01"
       (at 175.4 131.75 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -462,7 +473,7 @@
     )
     (instances
       (project "schematic"
-        (path "/77dd2b25-75e0-4ca1-b221-e21b1ceede50"
+        (path "/4e1659b4-80b2-4c35-b056-f3db928ac7e2"
           (reference "#PWR01")
           (unit 1)
         )
@@ -475,7 +486,7 @@
     (at 140.0 100.0 0)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "16ca168f-d0b6-4491-95b8-9901af303a49")
+    (uuid "df768197-bf8b-43b6-aec9-c6bcb86d37aa")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -487,7 +498,7 @@
     (at 185.4 100.0 180)
     (fields_autoplaced yes)
     (effects (font (size 1.27 1.27)))
-    (uuid "0ccf9a1e-1f44-40c3-8fac-5768adff6976")
+    (uuid "2cf73dbf-7dff-497c-b2e7-10feb86dad93")
     (property "Intersheet References" "${INTERSHEET_REFS}"
       (at 0 0 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -497,37 +508,37 @@
   (wire
     (pts (xy 150.0 100.0) (xy 158.89 100.0))
     (stroke (width 0) (type default))
-    (uuid "f2bff725-1b44-4044-96fb-06550c53dc1d")
+    (uuid "7355ff63-fa89-4f02-bc2c-b8b1e84f7dc3")
   )
 
   (wire
     (pts (xy 175.4 100.0) (xy 166.51 100.0))
     (stroke (width 0) (type default))
-    (uuid "e77ff669-c2df-4afa-9c1a-3840aa598062")
+    (uuid "ac34ad95-c4aa-4b43-84a1-8a222be45875")
   )
 
   (wire
     (pts (xy 175.4 100.0) (xy 175.4 116.51))
     (stroke (width 0) (type default))
-    (uuid "fb382eef-0cda-45e8-a5cd-a34f231bbe9a")
+    (uuid "07026f8f-381b-4814-b3c6-fedd1fd58ee1")
   )
 
   (wire
     (pts (xy 175.4 125.4) (xy 175.4 108.89))
     (stroke (width 0) (type default))
-    (uuid "ae80f39c-a2ff-4425-a6eb-4e7a9906fb36")
+    (uuid "1f459caf-ef52-4711-bad6-12d0b612fa9c")
   )
 
   (wire
     (pts (xy 140.0 100.0) (xy 150.0 100.0))
     (stroke (width 0) (type default))
-    (uuid "a9c77bb2-8525-41e7-87f5-857af4c735a4")
+    (uuid "d9efa219-1c47-4d5a-a12f-f0b896828468")
   )
 
   (wire
     (pts (xy 175.4 100.0) (xy 185.4 100.0))
     (stroke (width 0) (type default))
-    (uuid "f861164c-ab51-41bd-bad0-a70321e1b4a6")
+    (uuid "baad91c8-7813-4eaf-baf8-76edfca21197")
   )
 
   (sheet_instances

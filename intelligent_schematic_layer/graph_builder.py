@@ -11,6 +11,8 @@ def build(ckt: CktBlock) -> nx.Graph:
     G = nx.Graph()
 
     for comp in ckt.components:
+        if len(comp.nodes) < 2:
+            continue
         G.add_node(
             comp.nodes[0],
             node_type="signal" if comp.nodes[0] == "vin" else "internal"

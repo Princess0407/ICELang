@@ -1,7 +1,7 @@
-* rc_filter
+* zener_clamp
 
 R1 vin mid 1k
-C1 mid gnd 220n
+Z1 mid gnd 5V
 
 * test source auto-generated for port vin
 V_test vin gnd PULSE(0 5 0 1n 1n 500u 1m)

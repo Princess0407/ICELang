@@ -247,7 +247,30 @@ def _place_two_terminal(comp, comp_idx, placed, lib_id, ref, blocks, wire_segs):
     pa, pb = pin_positions(kx, ky, rotation)
     n1_kx, n1_ky = _scale(raw_x1, raw_y1)
     n2_kx, n2_ky = _scale(raw_x2, raw_y2)
-    node1_pin, node2_pin = closer_pin(n1_kx, n1_ky, pa, pb)
+
+    entry = _reg_lookup(comp.type)
+    pin_names = entry.get("pin_names", []) if entry else []
+    signal_pin = entry.get("signal_pin", None) if entry else None
+    if len(pin_names) == 2 and dy > dx:
+        from pin_reader import get_pin_offsets as _gpo
+        offsets = _gpo(lib_id)
+        if signal_pin and signal_pin in offsets:
+            other_pin = [p for p in pin_names if p != signal_pin][0]
+            sig_off   = offsets.get(signal_pin, (0, 0))
+            gnd_off   = offsets.get(other_pin,  (0, 0))
+        else:
+            sig_off = offsets.get(pin_names[0], (0, 0))
+            gnd_off = offsets.get(pin_names[1], (0, 0))
+        pins_horizontal = abs(sig_off[0] - gnd_off[0]) > abs(sig_off[1] - gnd_off[1])
+        if pins_horizontal:
+            rotation = 90
+            node1_pin = (round(kx + sig_off[1], 4), round(ky - sig_off[0], 4))
+            node2_pin = (round(kx + gnd_off[1], 4), round(ky - gnd_off[0], 4))
+        else:
+            node1_pin = (round(kx + sig_off[0], 4), round(ky + sig_off[1], 4))
+            node2_pin = (round(kx + gnd_off[0], 4), round(ky + gnd_off[1], 4))
+    else:
+        node1_pin, node2_pin = closer_pin(n1_kx, n1_ky, pa, pb)
 
     blocks.append(_placed_symbol(lib_id, ref, kx, ky, comp.value, rotation))
     for seg in manhattan_wires(n1_kx, n1_ky, node1_pin[0], node1_pin[1]):
