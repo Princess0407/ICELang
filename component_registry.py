@@ -29,7 +29,8 @@ def lookup(name: str) -> dict:
 
 def register(name: str, kicad_symbol: str,
              spice_prefix: str, pin_count: int,
-             pin_names: list, aliases: list = None):
+             pin_names: list, aliases: list = None,
+             signal_pin: str = None):
     reg = load()
     entry = {
         "kicad_symbol": kicad_symbol,
@@ -38,6 +39,8 @@ def register(name: str, kicad_symbol: str,
         "pin_names":     pin_names,
         "aliases":       aliases or []
     }
+    if signal_pin:
+        entry["signal_pin"] = signal_pin
     reg[name.lower()] = entry
     for alias in (aliases or []):
         reg[alias.lower()] = entry

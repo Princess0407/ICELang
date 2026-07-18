@@ -319,6 +319,7 @@
       "K",
       "A"
     ],
-    "aliases": []
+    "aliases": [],
+    "signal_pin": "K"
   }
 }

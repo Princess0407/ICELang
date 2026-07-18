@@ -1,272 +1,391 @@
-# ICELang
+# eSim Tool Manager
 
-**A domain-specific language and compiler pipeline for automated KiCad schematic generation inside eSim**
+<div align="center">
+
+**One tool that handles your entire tool ecosystem**
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
-![License](https://img.shields.io/badge/License-GPL--3.0-green)
-![eSim](https://img.shields.io/badge/eSim-2.3%20%7C%202.4%20%7C%202.5-purple)
-![Tests](https://img.shields.io/badge/Tests-5%20passing-brightgreen)
+![Platform](https://img.shields.io/badge/Platform-Linux%20|%20Windows%20|%20macOS-informational)
+![License](https://img.shields.io/badge/License-MIT-green)
+![eSim](https://img.shields.io/badge/eSim-2.3%20|%202.4%20|%202.5-purple)
+![Style](https://img.shields.io/badge/Theme-Catppuccin%20Mocha-pink)
 
+[Commands](#commands) · [Architecture](#architecture) · [Features](#features) · [Health Report](#health-report) · [Design Document](DESIGN_DOCUMENT.md)
 
-[What it does](#what-it-does) · [Pipeline](#pipeline) · [Usage](#usage) · [Architecture](#architecture) · [Test Circuits](#test-circuits) · [Tests](#tests) · [Roadmap](#roadmap)
-
----
-
-## What it does
-
-Drawing schematics by hand in KiCad is time-consuming and error-prone, especially for students learning circuit design inside eSim. ICELang is a domain-specific language and multi-stage compiler that takes a plain-text circuit description and produces a fully routed `.kicad_sch` file and SPICE netlist, both ready to open directly in eSim.
-
-**100% of test circuits** compile end-to-end to valid, openable KiCad schematics. The pipeline eliminates manual schematic drawing entirely for supported topologies.
-
-```
-circuit rc_filter:
-    port in vin
-    port out vout
-    resistor R1 1k vin mid
-    capacitor C1 220n mid gnd
-    probe vout mid
-```
+</div>
 
 ---
 
-## Impact
+## The Main Problem
 
-| Metric | Value |
-| ------ | ----- |
-| Test circuits passing end-to-end | 3 / 3 (100%) |
-| Pipeline stages | 6 (parse, AST, graph IR, placement, routing, codegen) |
-| Component types supported via registry | 8+ (resistor, capacitor, inductor, vsource, isource, BJT, NMOS, PMOS) |
-| New component types requiring code changes | 0 (registry-driven via `define` keyword) |
-| KiCad symbol pin offsets hardcoded | 0 (read from `.kicad_sym` at runtime via pin_reader.py) |
-| Compiler infrastructure | ~900 lines across 6 modules |
-| Manual schematic drawing time replaced | ~15 min per circuit |
-| SPICE netlist generated in same pass | Yes |
+Setting up eSim from scratch is a fragmented experience. You need the right version of Ngspice for your eSim release, a compatible KiCad build, GHDL and Verilator for NgVeri mixed-signal work, and OpenModelica for system-level modelling each with its own installation quirks, PATH requirements, and version constraints. A single wrong version silently breaks simulation runs.
+
+`esim-tm` is a purpose-built manager that handles the entire lifecycle: discovery, installation, version validation against specific eSim releases, dependency checking, and health reporting with both a terminal interface and a full graphical dashboard.
 
 ---
 
-## Pipeline
+## Display inducing Commands
 
-```mermaid
-flowchart TD
-    A([.ilang source]) --> B[icelang_parser.py\nLark grammar + ICELangTransformer\nsemantic analysis]
-    B --> C[AST\nCktBlock · Component · Port · Probe]
-    C --> D[graph_builder.py\nNetworkX graph IR\nnode and edge labeling]
-    D --> E[placement_engine.py\nTopology classifier\nseries · shunt · driver buckets\ncoordinate assignment]
-    E --> F[wire_router.py\nManhattan segment generation]
-    F --> G{Output}
-    G --> H[kicad_gen.py\nKiCad S-expression\n.kicad_sch]
-    G --> I[spice_gen.py\nSPICE netlist\n.cir]
-
-    style A fill:#313244,color:#cdd6f4
-    style B fill:#45475a,color:#cdd6f4
-    style C fill:#45475a,color:#cdd6f4
-    style D fill:#45475a,color:#cdd6f4
-    style E fill:#1e1e2e,color:#89b4fa
-    style F fill:#45475a,color:#cdd6f4
-    style G fill:#181825,color:#cdd6f4
-    style H fill:#1e3a2e,color:#a6e3a1
-    style I fill:#1e3a2e,color:#a6e3a1
+```
+python3 main.py --scan         →  shows every tool, version, and status
+python3 main.py --check        →  checks all system dependencies
+python3 main.py --compat 2.5   →  validates tools against eSim 2.5 requirements
+python3 main.py --report       →  generates a full HTML health report
+python3 main.py --gui          →  opens the Catppuccin-themed dashboard
 ```
 
-### Placement engine
+---
 
-```mermaid
-flowchart LR
-    A[Component] --> B{Classify}
-    B -->|type in DRIVER_TYPES| C[Driver\nLeft of VIN · vertical]
-    B -->|one node is power rail| D[Shunt\nBelow signal node · vertical\nspread if parallel]
-    B -->|neither node is power| E[Series\nOn signal path · horizontal]
+## Features
 
-    E --> F[BFS from port_in\ntrace signal path\nassign x coordinates]
-    D --> G[Anchor to signal node x\ny = -6.35\nspread parallel shunts by 5.08]
-    C --> H[x = vin_x - 7.62\npositive pin y = 0\nnegative pin y = -6.35]
+| Feature | Details |
+|---|---|
+| **Tool Scanner** | Detects KiCad, Ngspice, GHDL, Verilator, OpenModelica — versions + paths |
+| **eSim Compatibility Matrix** | Validates installed versions against eSim 2.3 / 2.4 / 2.5 requirements |
+| **Dependency Checker** | Checks gcc, cmake, git, libffi-dev and other system deps |
+| **Tool Installer** | Installs via apt / brew / winget / dnf / pacman — auto-detected |
+| **GUI Dashboard** | Full customtkinter desktop app — 6 panels, live progress dialogs |
+| **Rich Terminal UI** | Catppuccin-themed tables, spinners, colour-coded status |
+| **HTML Health Report** | Self-contained shareable report — opens in browser automatically |
+| **Persistent Logging** | Every action timestamped to `~/.esim_tool_manager/manager.log` |
+| **JSON Config** | User settings persisted to `~/.esim_tool_manager/config.json` |
+| **Cross-platform** | Auto-detects OS and package manager — no manual config needed |
+| **Dry-run mode** | Preview install commands without executing — safe for testing |
+| **One-liner installer** | `curl | bash` install script for end users |
 
-    style C fill:#3a1e2a,color:#f38ba8
-    style D fill:#3a2e1a,color:#f9e2af
-    style E fill:#1e3a2e,color:#a6e3a1
+### Requirements Coverage
+
+| # | Requirement | Status |
+|---|---|---|
+| 1 | Tool Installation Management | Implemented |
+| 2 | Update & Upgrade System | Partial |
+| 3 | Configuration Handling | Implemented |
+| 4 | Dependency Checker | Implemented |
+| 5 | User Interface + Logging | Implemented (both GUI and CLI) |
+| 6 | Cross-platform + Package Manager Integration | Implemented |
+
+---
+
+## Quick start Guide
+## For Linux Users
+
+### Prerequisites
+- Python 3.10+
+
+### Install dependencies
+
+```bash
+pip install customtkinter rich --break-system-packages
+```
+
+### One-liner install
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Princess0407/esim-tool-manager/main/install.sh | bash
+```
+
+### Run from source
+
+```bash
+git clone https://github.com/Princess0407/esim-tool-manager.git
+cd esim-tool-manager
+pip install customtkinter rich --break-system-packages
+python3 main.py
+```
+## For Windows Users
+
+## 1. Prerequisites
+* **Python 3.10+**: Download from [python.org](https://www.python.org/downloads/windows/). 
+    * **CRITICAL:** Check the box **"Add Python to PATH"** during installation.
+* **Git**: Install [Git for Windows](https://gitforwindows.org/).
+
+## 2. Installation Steps
+Open **PowerShell** (search for it in the Start menu and select **Run as Administrator**(helpful in preventing permission issues).
+
+#### Clone the repository
+```powershell
+git clone [https://github.com/Princess0407/esim-tool-manager.git](https://github.com/Princess0407/esim-tool-manager.git)
+cd esim-tool-manager
+```
+
+### Create a virtual environment
+```powershell
+python -m venv venv
+```
+
+### Activate the environment
+```powershell
+.\venv\Scripts\activate
+```
+
+### Install dependencies
+```powershell
+pip install customtkinter rich
+```
+
+### Run the application
+```powershell
+python main.py
+```
+## For Mac users
+
+## 1. Prerequisites
+
+Before starting, ensure you have the following installed:
+
+* **Homebrew**: The easiest way to manage packages on macOS. If you don't have it, install it from [brew.sh](https://brew.sh/).
+* **Python 3.10+**: Install the latest version via Homebrew to ensure all dependencies work correctly:
+    ```zsh
+    brew install python
+    ```
+* **Git**: Usually pre-installed on macOS, but can be updated via:
+    ```zsh
+    brew install git
+    ```
+
+---
+
+## 2. Installation Steps
+
+Open your **Terminal** and run the following commands:
+
+### Clone the Repository**
+```zsh
+git clone [https://github.com/Princess0407/esim-tool-manager.git](https://github.com/Princess0407/esim-tool-manager.git)
+cd esim-tool-manager
+```
+### Create a Virtual Environment
+```zsh
+python3 -m venv venv
+```
+
+### Activate the Environment
+```zsh
+source venv/bin/activate
+```
+*Note: (Once activated, you should see (venv) appear at the beginning of your terminal prompt.)*
+
+### Install Dependencies
+```zsh
+pip install customtkinter rich
+```
+### Run the Application
+```zsh
+python3 main.py
+```
+---
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `python3 main.py` | Interactive terminal menu (default) |
+| `python3 main.py --gui` | Launch graphical dashboard |
+| `python3 main.py --scan` | Scan installed tools, print version table |
+| `python3 main.py --check` | Check all system dependencies |
+| `python3 main.py --compat 2.5` | Validate tools against eSim 2.5 |
+| `python3 main.py --compat 2.4` | Validate tools against eSim 2.4 |
+| `python3 main.py --compat 2.3` | Validate tools against eSim 2.3 |
+| `python3 main.py --report` | Generate HTML health report, open in browser |
+| `python3 main.py --install Ngspice` | Install Ngspice via system package manager |
+| `python3 main.py --install KiCad --dry-run` | Preview install command without executing |
+
+### Interactive menu options
+
+```
+  [1]  Check dependencies
+  [2]  Scan installed tools
+  [3]  Install a tool
+  [4]  eSim compatibility check
+  [5]  Generate health report
+  [6]  View configuration
+  [7]  View action log
+  [q]  Quit
 ```
 
 ---
 
 ## Architecture
 
+```mermaid
+graph TD
+    A([User]) --> B[main.py\nEntry point & flag dispatcher]
+
+    B -->|--gui| C[gui.py\ncustomtkinter GUI]
+    B -->|default| D[cli.py\nrich Terminal UI]
+    B -->|--report| E[health_report.py\nHTML Generator]
+
+    C --> F[core.py\nBackend Logic]
+    D --> F
+    E --> F
+
+    F --> G[detect_os\nOS + pkg manager]
+    F --> H[scan_tools\nVersion detection]
+    F --> I[check_dependencies\nSystem deps]
+    F --> J[check_esim_compatibility\neSim version matrix]
+    F --> K[install_tool\napt/brew/winget/dnf/pacman]
+    F --> L[load_config / save_config\nJSON settings]
+
+    C --> M[theme.py\nCatppuccin Mocha palette]
+    D --> M
+    E --> M
+
+    H --> N[(~/.esim_tool_manager\nmanager.log\nconfig.json\nhealth_report.html)]
+    K --> N
+    L --> N
+
+    style A fill:#cba6f7,color:#1e1e2e
+    style B fill:#313244,color:#cdd6f4
+    style C fill:#45475a,color:#cdd6f4
+    style D fill:#45475a,color:#cdd6f4
+    style E fill:#45475a,color:#cdd6f4
+    style F fill:#1e1e2e,color:#89b4fa
+    style M fill:#181825,color:#b4befe
+    style N fill:#181825,color:#a6e3a1
 ```
-icelang/
-├── icelang_parser.py               Lark grammar, ICELangTransformer, semantic checks
-├── component_registry.py           Loads registry.json, resolves define keyword
-├── pin_reader.py                   Reads pin offsets from .kicad_sym at runtime
-├── registry.json                   Type -> KiCad symbol + SPICE prefix mapping
-├── main.py                         Entry point, CLI
-│
-├── intelligent_schematic_layer/
-│   ├── graph_builder.py            NetworkX graph IR from AST
-│   ├── placement_engine.py         Topology-aware coordinate assignment
-│   └── wire_router.py              Manhattan wire segment generation
-│
-├── output/
-│   ├── kicad_gen.py                KiCad S-expression (.kicad_sch) generator
-│   └── spice_gen.py                SPICE netlist (.cir) generator
-│
-├── test_circuits/
-│   ├── rc_filter.ilang
-│   ├── voltage_divider.ilang
-│   └── user_defined.ilang
-│
-└── tests/
-    └── test_pipeline.py
+
+### eSim Compatibility Flow
+
+```mermaid
+graph LR
+    A[Scan installed tools] --> B{Compare against\neSim version matrix}
+    B -->|within range| C[✓ Compatible]
+    B -->|below minimum| D[✗ Too old]
+    B -->|above maximum| E[⚠ Too new]
+    B -->|not found| F[✗ Missing]
+    C --> G[Overall: Compatible]
+    D --> H[Overall: Incompatible]
+    E --> I[Overall: Warning]
+    F --> H
+    style C fill:#1e3a2e,color:#a6e3a1
+    style D fill:#3a1e2a,color:#f38ba8
+    style E fill:#3a2e1a,color:#f9e2af
+    style F fill:#3a1e2a,color:#f38ba8
+    style G fill:#1e3a2e,color:#a6e3a1
+    style H fill:#3a1e2a,color:#f38ba8
+    style I fill:#3a2e1a,color:#f9e2af
 ```
 
-### Key design decisions
+### Project Structure
 
-**Registry-driven, not hardcoded.** Component types live in `registry.json`. The `define` keyword lets users create named aliases without touching any Python. Adding a new component type is a JSON edit.
-
-**Pin offsets from source.** `pin_reader.py` reads pin positions directly from KiCad `.kicad_sym` library files at runtime. No pin coordinates are hardcoded anywhere in the compiler. Symbol placement stays accurate across KiCad library versions.
-
-**Topology before aesthetics.** The placement engine classifies components by graph structure before assigning coordinates. No spring layout, no force-directed placement. Same `.ilang` file always produces the same schematic.
+```
+esim-tool-manager/
+├── main.py              # Entry point — CLI flags, dispatches to gui or cli
+├── gui.py               # customtkinter GUI — 6 panels, progress dialogs
+├── cli.py               # rich terminal interface — menus and tables
+├── core.py              # Backend — scanner, installer, dep checker, logger, config
+├── health_report.py     # HTML health report generator
+├── theme.py             # Catppuccin Mocha palette constants
+├── install.sh           # One-liner installer for end users
+├── requirements.txt     # pip dependencies
+├── DESIGN_DOCUMENT.md   # Full architecture document
+├── SAMPLE_OUTPUTS.txt   # Real terminal output examples
+└── docs/
+    ├── ARCHITECTURE.md  # Module interaction deep-dive
+    ├── FEATURES.md      # Full feature reference
+    └── USAGE.md         # Real-world usage workflows
+```
 
 ---
 
-## Usage
+## eSim Tool Roles
 
-### Prerequisites
+This manager is built specifically for eSim — not a generic package manager. It understands exactly why each tool exists:
 
-- Python 3.10+
-- KiCad 8.0+ with standard symbol libraries installed
-- eSim 2.3 / 2.4 / 2.5
+| Tool | eSim Component | Role |
+|---|---|---|
+| **KiCad** | Schematic + PCB | Primary front-end Eeschema for circuit drawing, Pcbnew for PCB layout |
+| **Ngspice** | Circuit Simulation | Core engine eSim converts schematics to SPICE netlists for Ngspice |
+| **GHDL** | HDL Simulation (NgVeri) | Compiles VHDL for mixed-signal co-simulation via XSPICE |
+| **Verilator** | HDL Simulation (NgVeri) | Compiles Verilog/SystemVerilog for NgVeri mixed-signal simulation |
+| **OpenModelica** | System Modeling | Multi-domain modeling for control systems and thermal analysis |
 
-### Install dependencies
+### eSim Version Compatibility Matrix
 
-```bash
-pip install lark networkx --break-system-packages
-```
+| Tool | eSim 2.3 | eSim 2.4 | eSim 2.5 | Critical |
+|---|---|---|---|---|
+| Ngspice | 36 – 38 | 38 – 40 | 40 – 42 | Yes |
+| KiCad | 5.1 – 6.0 | 6.0 – 7.0 | 8.0 – 9.0 | Yes |
+| GHDL | 1.0 – 2.0 | 2.0 – 3.0 | 3.0 – 4.1 | No |
+| Verilator | 4.2 | 4.2 – 5.0 | 5.0 – 5.024 | Yes (2.4+) |
+| OpenModelica | 1.18 – 1.20 | 1.20 – 1.22 | 1.22 – 1.24 | No |
 
-### Clone and run
+---
 
-```bash
-git clone https://github.com/Princess0407/ICELang.git
-cd ICELang
-python main.py test_circuits/rc_filter.ilang output/
-```
+## Health Report
 
-Output lands in `output/` as `rc_filter.kicad_sch` and `rc_filter.cir`.
+Running `python3 main.py --report` generates a self-contained Catppuccin-themed HTML file saved to `~/.esim_tool_manager/health_report.html` and opens it automatically in your browser. It contains:
 
-### Run all test circuits
+- System overview (OS, Python, architecture, package manager)
+- eSim component roles what each tool does inside eSim
+- Full compatibility matrix for eSim 2.3, 2.4, and 2.5
+- Tool scan results with version and path
+- Dependency check with fix commands for missing deps
+- Last 40 lines of the action log
 
-```bash
-python main.py test_circuits/rc_filter.ilang output/
-python main.py test_circuits/voltage_divider.ilang output/
-python main.py test_circuits/user_defined.ilang output/
+The report is fully self-contained — share it as a single HTML file.
+
+---
+
+## Supported Platforms
+
+| Platform | Package Manager | Status |
+|---|---|---|
+| Debian / Ubuntu | `apt` | Fully supported — primary target |
+| Fedora / RHEL | `dnf` | Supported |
+| Arch Linux | `pacman` | Supported |
+| macOS | `brew` (Homebrew) | Supported |
+| Windows 10/11 | `winget` or `choco` | Supported |
+
+---
+
+## Configuration
+
+Stored at `~/.esim_tool_manager/config.json`, created automatically on first run:
+
+```json
+{
+  "theme": "mocha",
+  "auto_update": false,
+  "log_level": "info",
+  "esim_path": "/home/user/eSim",
+  "check_on_start": true
+}
 ```
 
 ---
 
-## ICELang Syntax
+## Logging
+
+Every action logged to `~/.esim_tool_manager/manager.log`:
 
 ```
-circuit <name>:
-    port in <node>
-    port out <node>
-
-    <type> <ref> <value> <node1> <node2>
-
-    probe <label> <node>
+2026-04-13 10:12:01  [INFO]    OS detected: Debian GNU/Linux 12 · package manager: apt
+2026-04-13 10:12:02  [INFO]    Tool scan: Ngspice → ok (40.1)
+2026-04-13 10:12:02  [WARNING] Tool scan: KiCad → update (8.0.3)
+2026-04-13 10:12:03  [ERROR]   Dep check: libffi-dev → missing
+2026-04-13 10:12:04  [INFO]    eSim 2.5 compat: Ngspice → ok (v40.1 within 40–42)
 ```
-
-### Supported component types
-
-| Keyword     | Component        | KiCad Symbol     | SPICE Prefix |
-| ----------- | ---------------- | ---------------- | ------------ |
-| `resistor`  | Resistor         | Device:R         | R            |
-| `capacitor` | Capacitor        | Device:C         | C            |
-| `inductor`  | Inductor         | Device:L         | L            |
-| `vsource`   | Voltage source   | Device:Battery   | V            |
-| `isource`   | Current source   | Device:Battery   | I            |
-| `bjt_npn`   | NPN transistor   | Device:Q_NPN_BCE | Q            |
-| `bjt_pnp`   | PNP transistor   | Device:Q_PNP_BCE | Q            |
-| `nmos`      | N-channel MOSFET | Device:NMOS      | M            |
-
-### Custom types via `define`
-
-```
-define filter_cap as capacitor using Device:C
-define pull_down as resistor using Device:R
-
-circuit signal_conditioner:
-    port in vin
-    port out vout
-    filter_cap C1 220n mid gnd
-    pull_down R2 100k mid gnd
-    probe vout mid
-```
-
-No code changes needed. New types register automatically on parse.
 
 ---
 
-## Test Circuits
+## Documentation
 
-### RC filter
-
-```
-resistor R1 1k vin mid
-capacitor C1 220n mid gnd
-```
-
-Low-pass RC filter. Series resistor on signal path, capacitor shunting to GND.
-
-### Voltage divider
-
-```
-vsource V1 9V vin gnd
-resistor R1 10k vin mid
-resistor R2 10k mid gnd
-```
-
-Resistive divider with a voltage source driver placed left of VIN.
-
-### Signal conditioner (user-defined types)
-
-```
-define filter_cap as capacitor using Device:C
-define pull_down as resistor using Device:R
-define series_res as resistor using Device:R
-
-series_res R1 1k vin mid
-filter_cap C1 220n mid gnd
-pull_down R2 100k mid gnd
-```
-
-Two parallel shunts on the same node, placed symmetrically. Demonstrates the `define` keyword and parallel shunt layout.
-
----
-
-## Tests
-
-```bash
-python -m pytest tests/test_pipeline.py -v
-```
-
-| Test | What it checks |
-| ---- | -------------- |
-| `test_parser_roundtrip_rc_filter` | Correct component count, types, and node names from parser |
-| `test_parser_roundtrip_signal_conditioner` | `define` keyword resolves correctly to base types |
-| `test_placement_series_horizontal` | Series nodes at y=0 with increasing x; shunts at y<0 |
-| `test_placement_voltage_divider` | Three-node signal path in correct left-to-right order |
-| `test_kicad_output_validity` | Generated file is valid KiCad S-expression with wires, symbols, VIN, VOUT, GND |
-
----
-
-## Roadmap
-
-- Three-terminal device placement for BJT and MOSFET circuits (pin_reader infrastructure already in place)
-- Multi-stage cascaded circuit blocks
-- eSim plugin interface for in-app ICELang compilation
-- Subcircuit and hierarchical block support
+| Document | Contents |
+|---|---|
+| [DESIGN_DOCUMENT.md](DESIGN_DOCUMENT.md) | Full architecture, module breakdown, design decisions |
+| [docs/ARCHITECTURE.md](docs/Architecture.md) | Component diagrams, execution flow |
+| [docs/FEATURES.md](docs/Features.md) | Full feature reference with implementation details |
+| [docs/USAGE.md](docs/Usage.md) | Real executed workflows with outputs |
+| [SAMPLE_OUTPUTS.txt](SAMPLE_OUTPUTS.txt) | Real terminal output from all commands |
 
 ---
 
 ## License
 
-GPL-3.0 — developed as part of FOSSEE Summer Internship 2026, IIT Bombay.
+MIT License — developed as part of eSim Summer Fellowship 2026, Task 5.
 
-Built for FOSSEE eSim Summer Internship 2026 · IIT Bombay
+<div align="center">
+<sub>Built for FOSSEE eSim Summer Fellowship 2026 · IIT Bombay</sub>
+</div>
+
