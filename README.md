@@ -471,7 +471,8 @@ done
 
 Low-pass RC filter. `res` is series on the signal path. `cap` is a shunt below the `mid` node. Verifies: series placement, single shunt, GND symbol, VIN/VOUT labels.
 
-> `[screenshot: docs/rc_filter.png]`
+<img width="852" height="555" alt="image" src="https://github.com/user-attachments/assets/2ae5b920-fcc5-475f-9598-9da4861cefc3" />
+
 
 ---
 
