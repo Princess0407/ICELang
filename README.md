@@ -553,60 +553,94 @@ Runtime symbol registration. `D_Zener` is looked up in the KiCad library at pars
 
 ---
 
-## KiCad Plugin Roadmap
+## KiCad Plugin Integration
 
-The original task for this internship was to develop a KiCad plugin that integrates ICELang into eSim. The compiler pipeline is complete. Here is what remains for the plugin integration.
+The original task for this internship was to develop a KiCad plugin that integrates ICELang into eSim. The compiler pipeline is complete. The plugin layer (`icelang_plugin/`) is built and tested. This section documents the full integration story including a KiCad 9-specific consideration that affects all Debian/Ubuntu users.
 
 ### What a KiCad plugin is
 
-A KiCad plugin is a Python script that KiCad loads at startup from its plugin directory (`~/.local/share/kicad/9.0/scripting/plugins/` on Linux). It registers itself in the KiCad Scripting Console or the PCB/Schematic Editor action toolbar. KiCad exposes a Python API (`pcbnew` for PCB, `eeschema` scripting for schematics) that the plugin calls.
+A KiCad plugin is a Python script that KiCad loads at startup from its plugin directory (`~/.local/share/kicad/9.0/scripting/plugins/` on Linux). It registers itself as an `ActionPlugin` subclass and appears under Tools → External Plugins inside KiCad.
 
-### What merging with FOSSEE/eSim does and does not do
+### The KiCad 9 scripting console situation
 
-Merging your code into `FOSSEE/eSim` via a PR makes ICELang part of the eSim source tree. It does not automatically make it a plugin. eSim itself is a PyQt5 application that wraps KiCad and ngspice. A PR to eSim means your code ships with eSim, but you still need to write the plugin interface layer that connects the eSim UI to your compiler.
+KiCad 9 changed how automation works. The internal Python scripting console that existed in KiCad 7 and 8 was phased out in favour of an external IPC API server. On Debian and Ubuntu, the KiCad 9 packages are built with the internal console explicitly disabled — the menu option does not appear and cannot be made to appear without recompiling KiCad from source.
 
-###  v4.0
+This affects the `pcbnew.ActionPlugin` approach: the plugin files install correctly, but KiCad 9 on Debian will not load or execute them because the scripting subsystem is off.
 
-**Step 1 — Plugin entry point**
+**What KiCad 9 provides instead:** an IPC API server. When enabled, KiCad listens on `127.0.0.1:4243` (eeschema) and accepts JSON-RPC commands from external scripts. This is actually a cleaner architecture — scripts run in a normal terminal with full access to the filesystem and no sandboxing constraints.
 
-Create `icelang_plugin/` directory with:
+### Enabling the IPC server
 
-```python
-# icelang_plugin/__init__.py
-import pcbnew
+Open KiCad 9, go to **Preferences → Preferences → Scripting** and enable the IPC API server. Verify it is running:
 
-class ICELangPlugin(pcbnew.ActionPlugin):
-    def defaults(self):
-        self.name = "ICELang"
-        self.category = "Schematic"
-        self.description = "Compile .ilang DSL to KiCad schematic"
-
-    def Run(self):
-        # open file dialog → get .ilang path
-        # call main.run(ilang_path, output_dir)
-        # load generated .kicad_sch into current schematic editor
-        pass
-
-ICELangPlugin().register()
+```bash
+ss -tlnp | grep 4243
+# Should show: LISTEN 0 5 127.0.0.1:4243 users:(("eeschema",...))
 ```
 
-**Step 2 — eSim UI integration**
+Install the bridge package:
 
-eSim has a toolbar and menu system in `src/frontEnd/Application.py`. Add a menu item that opens a file picker for `.ilang` files and calls the compiler. The generated `.kicad_sch` is then loaded into eSim's schematic view.
+```bash
+pip install kicad-python --break-system-packages
+```
 
-**Step 3 — PR to FOSSEE/eSim**
+### Using the IPC loader
 
-The PR should add:
-- `src/icelang/` — the full ICELang compiler (your current repo)
-- `src/icelang_plugin/` — the plugin entry point above
-- `src/frontEnd/Application.py` — menu item addition
-- `docs/icelang/` — user documentation
+ICELang ships with `ipc_loader.py` which handles both compilation and loading into KiCad in one command:
 
-Follow the format of existing FOSSEE eSim PRs: one feature per PR, description of what changed, test evidence (screenshots of generated schematics), no unrelated reformatting.
+```bash
+# Compile and load directly into the open KiCad schematic editor
+python3 ipc_loader.py --compile test_circuits/rc_filter.ilang output/
 
-**Step 4 — What does not need to change**
+# Or load an already-compiled schematic
+python3 ipc_loader.py output/rc_filter.kicad_sch
+```
 
-Your compiler is already self-contained with no eSim-specific dependencies. The plugin layer is purely a UI wrapper around `main.run()`. The SPICE netlist output already matches the format eSim expects for ngspice simulation.
+The loader connects to KiCad's IPC server, sends an `openFile` command, and the schematic appears in the active editor window. If the IPC call fails (API version mismatch), it falls back to a raw JSON-RPC socket call. If that also fails, it prints the file path for manual opening.
+
+### How to implement this yourself
+
+If you are building a similar tool that needs to talk to KiCad 9:
+
+**Step 1 — Check the server is running:**
+
+```python
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(2)
+try:
+    s.connect(("127.0.0.1", 4243))
+    print("KiCad IPC server is up")
+except ConnectionRefusedError:
+    print("Enable the server in KiCad Preferences first")
+```
+
+**Step 2 — Send a command via kicad-python:**
+
+```python
+import kicad
+client = kicad.Client(host="127.0.0.1", port=4243)
+client.open_file("/absolute/path/to/schematic.kicad_sch")
+```
+
+**Step 3 — Raw JSON-RPC fallback (if kicad-python API changes):**
+
+```python
+import socket, json
+payload = json.dumps({
+    "jsonrpc": "2.0",
+    "method":  "openFile",
+    "params":  {"path": "/absolute/path/to/schematic.kicad_sch"},
+    "id":      1
+}) + "\n"
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(("127.0.0.1", 4243))
+s.sendall(payload.encode())
+response = json.loads(s.recv(4096).decode())
+s.close()
+```
+
+The JSON-RPC approach works regardless of `kicad-python` version because it talks directly to the protocol.
 
 ---
 
