@@ -696,5 +696,3 @@ python main.py test_circuits/zener_clamp.ilang output/
 ## License
 
 GPL-3.0 — developed as part of FOSSEE Summer Internship 2026, IIT Bombay.
-
-Built for FOSSEE eSim Summer Internship 2026 · IIT Bombay
