@@ -29,7 +29,7 @@ The compiler has six stages: lexing and parsing via Lark, AST construction, grap
 
 ICELang has gone through two major iterations documented here. This repository contains v3.0 (current). The v1.0 tag contains the original hardcoded implementation for reference.
 
-### v2.2 — Stable two-terminal pipeline
+### v2.2 Stable two-terminal pipeline
 
 v2.2 is the first version that produces clean, correct KiCad schematics end-to-end. It introduced the topology-aware placement engine that replaced spring-layout and force-directed approaches entirely.
 
@@ -55,7 +55,7 @@ ckt <circuit_name>:
 done
 ```
 
-Example — RC filter:
+Example: RC filter:
 
 ```
 ckt rc_filter:
@@ -72,19 +72,19 @@ done
 - No pin polarity convention — shunt component orientation (which pin faces the signal node) is determined by geometry, not semantics
 - Components registered via `define` inherit the base type's pin order, which may be wrong for polarized components
 
-**v1.0 schematic output — RC filter(earliest version):**
+**v1.0 schematic output RC filter(earliest version):**
 
 <img width="1192" height="785" alt="image" src="https://github.com/user-attachments/assets/89c6ce2b-ffbe-44fd-82cf-866a1748a0ae" />
 
 
-**v2.2 schematic output — signal conditioner:**
+**v2.2 schematic output signal conditioner:**
 
 <img width="971" height="612" alt="image" src="https://github.com/user-attachments/assets/6e54393c-1a4d-41e4-b72d-0cfbf97df62b" />
 
 
 ---
 
-### v3.0 — General-purpose two-terminal language (current)
+### v3.0 General purpose two-terminal language (current)
 
 v3.0 introduces `ncomp`, a runtime component registration instruction that makes ICELang a genuinely general-purpose language for any two-terminal KiCad Device library symbol. It also introduces a pin polarity convention system that correctly orients polarized components (diodes, zeners, LEDs, electrolytic caps) without any hardcoded component-specific logic.
 
@@ -98,7 +98,7 @@ v3.0 introduces `ncomp`, a runtime component registration instruction that makes
 | Component coverage | Fixed registry only | Any symbol in KiCad `Device` library |
 | `ncomp` pin inference | N/A | Reads pin names from `.kicad_sym` at parse time, infers `signal_pin` from pin name conventions (K, A, +/-) |
 
-**v3.0 syntax — `ncomp`:**
+**v3.0 syntax `ncomp`:**
 
 ```
 ckt <circuit_name>:
@@ -112,7 +112,7 @@ ckt <circuit_name>:
 done
 ```
 
-Example — zener clamp:
+Example: zener clamp:
 
 ```
 ckt zener_clamp:
@@ -265,29 +265,29 @@ flowchart LR
 
 ## Pipeline
 
-Stage-by-stage walkthrough of what happens when you run `python main.py test_circuits/rc_filter.ilang output/`.
+Stage by stage walkthrough of what happens when you run `python main.py test_circuits/rc_filter.ilang output/`.
 
-**Stage 1 — Lexing and parsing (`icelang_parser.py`)**
+**Stage 1: Lexing and parsing (`icelang_parser.py`)**
 
 Lark tokenizes the `.ilang` source using an earley parser. The grammar handles five statement types: `port_in_decl`, `port_out_decl`, `component_stmt`, `define_stmt`, `ncomp_stmt`, and `use_stmt`. `ncomp_stmt` triggers a side effect at parse time: it calls `pin_reader.get_pin_offsets()` against the installed KiCad library, infers `signal_pin`, and calls `component_registry.register()` before the rest of the file is transformed. This makes the registered type available to subsequent `component_stmt` lookups in the same file.
 
-**Stage 2 — AST construction (`ICELangTransformer`)**
+**Stage 2: AST construction (`ICELangTransformer`)**
 
 The Lark transformer converts parse tree nodes to typed Python dataclasses. `CktBlock` holds the full circuit. `Component` holds type, nodes list, value, and pin mapping. `NcompStmt` holds the registered name, KiCad symbol ID, inferred SPICE prefix, and pin names. Semantic analysis runs after transform: checks for GND presence, floating nodes, missing port_out node, empty circuit.
 
-**Stage 3 — Graph IR (`graph_builder.py`)**
+**Stage 3: Graph IR (`graph_builder.py`)**
 
 Builds a NetworkX undirected graph from the component list. Each circuit net becomes a node with a `node_type` attribute (`port_in`, `port_out`, `ground`, `internal`, `signal`). Each component becomes an edge with `component`, `value`, and `ref` attributes. Components with fewer than 2 nodes are skipped. This graph is passed to the placement engine.
 
-**Stage 4 — Placement (`placement_engine.py`)**
+**Stage 4: Placement (`placement_engine.py`)**
 
 `_classify()` partitions components into three buckets: drivers (voltage/current sources), shunts (one node is a power rail), and series (neither node is a power rail). `_trace_signal_path()` does a BFS through series-only adjacency from `port_in.name` to produce an ordered node list. Coordinates are assigned deterministically: series nodes at `y=0` spaced `5.08` apart, shunt power nodes at `y=-6.35` below their signal node, driver negative terminals at `x=vin_x-7.62`. All coordinates are snapped to the `2.54mm` KiCad grid. Returns a flat `placed` dict mapping node names to `(world_x, world_y)`.
 
-**Stage 5 — Wire routing (`wire_router.py`)**
+**Stage 5: Wire routing (`wire_router.py`)**
 
 Generates Manhattan wire segments from node positions to component pin positions. Each two-terminal component's midpoint is the symbol center. Pin positions are computed from the symbol's KiCad offset data. The `closer_pin()` function assigns each node to the geometrically nearer pin. For polarized shunt components, `signal_pin` overrides geometry. All segments are deduplicated before emission.
 
-**Stage 6 — Code generation (`output/kicad_gen.py`, `output/spice_gen.py`)**
+**Stage 6: Code generation (`output/kicad_gen.py`, `output/spice_gen.py`)**
 
 `kicad_gen.py` builds a KiCad S-expression string. It embeds symbol definitions from the installed `.kicad_sym` library files, places component symbols at computed coordinates, draws wires, places GND power symbols at all shunt power node positions, and places VIN/VOUT global labels connected to the signal path endpoints. `spice_gen.py` generates a SPICE netlist with auto-numbered component references and an injected test voltage source on `port_in`.
 
@@ -564,11 +564,11 @@ A KiCad plugin is a Python script that KiCad loads at startup from its plugin di
 
 ### The KiCad 9 scripting console situation
 
-KiCad 9 changed how automation works. The internal Python scripting console that existed in KiCad 7 and 8 was phased out in favour of an external IPC API server. On Debian and Ubuntu, the KiCad 9 packages are built with the internal console explicitly disabled — the menu option does not appear and cannot be made to appear without recompiling KiCad from source.
+KiCad 9 changed how automation works. The internal Python scripting console that existed in KiCad 7 and 8 was phased out in favour of an external IPC API server. On Debian and Ubuntu, the KiCad 9 packages are built with the internal console explicitly disabled  the menu option does not appear and cannot be made to appear without recompiling KiCad from source.
 
 This affects the `pcbnew.ActionPlugin` approach: the plugin files install correctly, but KiCad 9 on Debian will not load or execute them because the scripting subsystem is off.
 
-**What KiCad 9 provides instead:** an IPC API server. When enabled, KiCad listens on `127.0.0.1:4243` (eeschema) and accepts JSON-RPC commands from external scripts. This is actually a cleaner architecture — scripts run in a normal terminal with full access to the filesystem and no sandboxing constraints.
+**What KiCad 9 provides instead:** an IPC API server. When enabled, KiCad listens on `127.0.0.1:4243` (eeschema) and accepts JSON-RPC commands from external scripts. This is actually a cleaner architecture scripts run in a normal terminal with full access to the filesystem and no sandboxing constraints.
 
 ### Enabling the IPC server
 
@@ -603,7 +603,7 @@ The loader connects to KiCad's IPC server, sends an `openFile` command, and the 
 
 If you are building a similar tool that needs to talk to KiCad 9:
 
-**Step 1 — Check the server is running:**
+**Step 1 Check the server is running:**
 
 ```python
 import socket
@@ -616,7 +616,7 @@ except ConnectionRefusedError:
     print("Enable the server in KiCad Preferences first")
 ```
 
-**Step 2 — Send a command via kicad-python:**
+**Step 2 Send a command via kicad-python:**
 
 ```python
 import kicad
@@ -624,7 +624,7 @@ client = kicad.Client(host="127.0.0.1", port=4243)
 client.open_file("/absolute/path/to/schematic.kicad_sch")
 ```
 
-**Step 3 — Raw JSON-RPC fallback (if kicad-python API changes):**
+**Step 3 Raw JSON-RPC fallback (if kicad-python API changes):**
 
 ```python
 import socket, json
@@ -695,4 +695,4 @@ python main.py test_circuits/zener_clamp.ilang output/
 
 ## License
 
-GPL-3.0 — developed as part of FOSSEE Summer Internship 2026, IIT Bombay.
+GPL-3.0 developed as part of FOSSEE Summer Internship 2026, IIT Bombay.
